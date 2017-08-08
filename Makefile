@@ -1,0 +1,41 @@
+TYPE?=hisi_100
+#TYPE?=hisi_200
+
+
+ifeq ($(TYPE), hisi_100)
+CC:=arm-hisiv100nptl-linux-gcc
+STRIP:=arm-hisiv100nptl-linux-strip
+CFLAGS = -Wall -O2
+LIBFLAGS = -Wl,-rpath /mnt/ydt_box/lib
+INC_DIR := -I./inc
+LIB_DIR := -L./lib/hisi100
+LIBS := -lremote_debug -lmd5gen -lxml -lpthread -lsqlite3 -lrt
+
+DEST_DIR=/mnt/hgfs/share_dir/nfs_dir/boa_small_box
+APPBIN = box_iptable_100
+endif
+
+ifeq ($(TYPE), hisi_200)
+CC:=arm-hisiv200-linux-gcc
+STRIP:=arm-hisiv200-linux-strip
+CFLAGS = -Wall -O2
+LIBFLAGS = -Wl,-rpath /mnt/ydt_box/lib
+INC_DIR := -I./inc
+LIB_DIR := -L./lib/hisi200
+LIBS := -lremote_debug -lmd5gen -lsqlite3 -lxml -lpthread -lrt
+
+DEST_DIR=/mnt/hgfs/share_dir/nfs_dir/boa_big_box/bin
+APPBIN = box_iptable_200
+endif
+
+
+SRCS = $(wildcard *.c)
+OBJS = $(patsubst %.c,%.o,$(SRCS))
+
+all:
+	$(CC) $(SRCS) $(CFLAGS) $(INC_DIR) $(LIBFLAGS) $(LIB_DIR) $(LIBS) -o $(APPBIN)
+	$(STRIP) $(APPBIN)
+	cp $(APPBIN) $(DEST_DIR)/$(APPBIN)
+clean:
+	rm -rf $(OBJS) $(APPBIN)
+	rm -rf $(DEST_DIR)/$(APPBIN)
