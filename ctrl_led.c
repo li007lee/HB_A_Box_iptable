@@ -7,101 +7,12 @@
 
 #include "my_include.h"
 #include "ctrl_led.h"
+#include "net_api.h"
 #include "get_set_config.h"
 
-static void *parse_domain_task(void *param)
-{
-	int ret = 0;
-    struct addrinfo hints;
-    struct addrinfo *res, *cur;
-    struct sockaddr_in *addr;
-    char srv_ip[16] = {0};
-    char ipbuf[16] = {0};
-    DOMAIN_PARSE_ARG_HANDLE parse_arg = (DOMAIN_PARSE_ARG_HANDLE)param;
+extern HB_S32 flag_wan; //用于标记是否启用广域网 1启用 0未启用
 
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET; /* Allow IPv4 */
-    hints.ai_flags = AI_PASSIVE; /* For wildcard IP address */
-    hints.ai_protocol = 0; /* Any protocol */
-    hints.ai_socktype = SOCK_STREAM;
-
-    printf("\n######  begin parse domain:[%s]\n", parse_arg->domain);
-
-    ret = getaddrinfo(parse_arg->domain, NULL,&hints,&res);
-    if (ret < 0)
-    {
-        perror("#####  parse err getaddrinfo");
-        return NULL;
-    }
-
-    for (cur = res; cur != NULL; cur = cur->ai_next)
-    {
-        addr = (struct sockaddr_in *)cur->ai_addr;
-        sprintf(srv_ip, "%s", inet_ntop(AF_INET, &addr->sin_addr, ipbuf, 16));
-        ret = write(parse_arg->pipe_fd, srv_ip, strlen(srv_ip));
-        break;
-    }
-
-    freeaddrinfo(res);
-    return NULL;
-}
-
-//通过域名解析出相应的ip，超过timeout秒解析不出来，则返回失败-1，成功返回值大于0
-int from_domain_to_ip(char *srv_ip, char *srv_domain, int timeout)
-{
-	int ret = 0;
-	int fd[2] = {0};
-	char recv_buf[32] = {0};
-	DOMAIN_PARSE_ARG_OBJ domain_arg;
-	memset(&domain_arg, 0, sizeof(DOMAIN_PARSE_ARG_OBJ));
-	struct timeval tval;
-	fd_set rset;
-
-	ret = pipe(fd);
-    FD_ZERO(&rset);
-    FD_SET(fd[0],&rset);
-    tval.tv_sec = timeout;
-    tval.tv_usec = 0;
-
-    domain_arg.pipe_fd = fd[1];
-    memcpy(domain_arg.domain, srv_domain, strlen(srv_domain));
-	pthread_attr_t attr;
-	pthread_t parse_domain_pthread_id;
-	ret = pthread_attr_init(&attr);
-	ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	ret = pthread_create(&parse_domain_pthread_id, &attr, parse_domain_task, (void *)(&domain_arg));
-	pthread_attr_destroy(&attr);
-	ret = select(fd[0] + 1, &rset, NULL, NULL, &tval);
-    if (0 == ret) // timeout
-    {
-    	close(fd[0]);
-    	close(fd[1]);
-        printf("#############time_out!\n");
-        return -1;
-    }
-    else if (ret < 0)
-    {
-    	close(fd[0]);
-    	close(fd[1]);
-        printf("#############select error !!\n");
-        return -1;
-    }
-    else
-    {
-        if (FD_ISSET(fd[0], &rset))
-        {
-            ret = read(fd[0], recv_buf, sizeof(recv_buf));
-            TRACE_DBG("\n############parse domain [%s] to ip [%s]\n", srv_domain, recv_buf);
-            strcpy(srv_ip, recv_buf);
-        }
-    	close(fd[0]);
-    	close(fd[1]);
-    }
-    return 0;
-}
-
-
-
+#ifdef DOUBLE_NET_PORT
 HB_VOID * CtrlLed(void *arg)
 {
 	pthread_detach(pthread_self());
@@ -110,8 +21,6 @@ HB_VOID * CtrlLed(void *arg)
 
 	while(1)
 	{
-		HB_S32 flag_wan = 0;
-		flag_wan = GetWanConnectionStatus();
 		if (flag_wan == 0)
 		{
 			//如果广域网未开启，直接返回成功，无需检测网络
@@ -209,3 +118,4 @@ HB_VOID * CtrlLed(void *arg)
 
 	pthread_exit(NULL);
 }
+#endif

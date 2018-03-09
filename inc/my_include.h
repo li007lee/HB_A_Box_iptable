@@ -78,7 +78,6 @@ typedef enum _tagHB_BOOL
 #define SMALL_BOX
 //#define BIG_BOX_SINGLE_PORT
 //#define BIG_BOX_MULTIPLE_PORT
-//#define BIG_BOX_ENCRYPT
 //#define BIG_BOX_ELEVATOR
 
 
@@ -108,11 +107,11 @@ typedef enum _tagHB_BOOL
 
 #define KEY	0xabcd0acd21ec //用于生成机器码时隐藏真是MAC地址（异或时使用）
 
-#define MILLION    (1024*1024)
 
 #ifdef SMALL_BOX
 
 #define DOUBLE_NET_PORT //定义双网口版本
+#define AGRICULTURE //定义农业版本
 
 #define LED_CTRL_SH_PATH	"led_ctrl.sh"
 #define KILL_LED_CTRL_SH_PATH	"killall -9 led_ctrl.sh"
@@ -208,7 +207,7 @@ typedef struct
 	HB_S32 num;
     HB_CHAR ip[IP_LIST_MAX][IP_LEN_MAX];
     HB_CHAR port[IP_LIST_MAX][PORT_LEN];
-}STREAM_INFO_STRUCT;
+}SERVER_INFO_STRUCT;
 
 
 typedef struct
@@ -249,6 +248,7 @@ typedef struct _tagDEV_PLAT_MESSAGE
 	HB_U32 gnlan_flag;   //天联登录成功标志，登录成功:1 登录失败:0
     HB_U32 return_regist; //设备注册成功标志，注册成功:1 注册失败:0
     HB_U32 return_stream; //设备获取流媒体信息成功标志，成功:1 失败:0
+    HB_U32 return_heart_beat; //设备获取流媒体信息成功标志，成功:1 失败:0
     HB_U32 return_token;
     HB_U32 return_push;
     ROUTE_MSG_REGIST_OBJ route_regist;

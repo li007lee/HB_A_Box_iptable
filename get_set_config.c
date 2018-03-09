@@ -5,104 +5,10 @@
  *      Author: root
  */
 #include "my_include.h"
-#include "sqlite3.h"
+#include "net_api.h"
 #include "get_set_config.h"
 
-HB_S32 get_ip_dev(HB_CHAR *eth, HB_CHAR *ipaddr)
-{
-	struct ifreq req;
-	HB_S32 sock;
-	HB_CHAR *temp_ip = NULL;
-	sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0)
-    {
-        return -1;
-    }
-	strncpy(req.ifr_name, eth, IFNAMSIZ);
-	if ( ioctl(sock, SIOCGIFADDR, &req) < 0 )
-    {
-        fprintf(stderr,"ioctl error: %s\n", strerror (errno));
-        return -1;
-    }
-   temp_ip = inet_ntoa(*(struct in_addr *) &((struct sockaddr_in *) &req.ifr_addr)->sin_addr);
-   //temp_ip = inet_ntoa(((struct sockaddr_in *) &req.ifr_addr)->sin_addr);
-   strcpy(ipaddr,temp_ip);
-   close(sock);
-   return HB_SUCCESS;
-
-}
-
-
-//获取网卡序列号
-//mac_sn 网卡序列号, dev 网卡名
-static HB_S32 get_mac_dev(HB_CHAR *mac_sn, HB_CHAR *dev)
-{
-    struct ifreq tmp;
-    HB_S32 sock_mac;
-   // HB_CHAR *tmpflag;
-    //HB_CHAR mac_addr[30];
-    sock_mac = socket(AF_INET, SOCK_STREAM, 0);
-    if( sock_mac == -1)
-    {
-        perror("### create socket fail\n");
-        return -1;
-    }
-    memset(&tmp,0,sizeof(tmp));
-    strncpy(tmp.ifr_name, dev, sizeof(tmp.ifr_name)-1);
-    if( (ioctl( sock_mac, SIOCGIFHWADDR, &tmp)) < 0 )
-    {
-    	close(sock_mac);
-    	TRACE_ERR("### mac ioctl error\n");
-        return -1;
-    }
-
-    close(sock_mac);
-    memcpy(mac_sn, tmp.ifr_hwaddr.sa_data, 6);
-
-    return 0;
-}
-
-
-//获取MAC
-HB_U64 get_sys_mac()
-{
-	HB_CHAR mac[32] = {0};
-	HB_CHAR get_mac[32] = {0};
-	get_mac_dev(get_mac, ETHX);
-
-    sprintf(mac, "0x%02x%02x%02x%02x%02x%02x",
-            (HB_U8)get_mac[0],
-            (HB_U8)get_mac[1],
-            (HB_U8)get_mac[2],
-            (HB_U8)get_mac[3],
-            (HB_U8)get_mac[4],
-            (HB_U8)get_mac[5]
-            );
-
-    return strtoull(mac, 0, 16);
-}
-
-//获取网卡序列号
-HB_S32 get_sys_sn(HB_CHAR *sn, HB_S32 sn_size)
-{
-	HB_U64 sn_num = 0;
-	HB_CHAR sn_mac[32] = {0};
-	HB_CHAR mac[32] = {0};
-	get_mac_dev(mac, ETHX);
-	sprintf(sn_mac, "0x%02x%02x%02x%02x%02x%02x",
-			(HB_U8)mac[0],
-			(HB_U8)mac[1],
-			(HB_U8)mac[2],
-			(HB_U8)mac[3],
-			(HB_U8)mac[4],
-			(HB_U8)mac[5]);
-	sn_num = strtoull(sn_mac, 0, 16);
-	snprintf(sn, sn_size, "%llu", sn_num);
-
-	printf("%s===%d\t%s==%d\n",sn_mac,strlen(sn_mac), sn, strlen(sn));
-	return 0;
-}
-
+extern HB_S32 flag_wan; //用于标记是否启用广域网 1启用 0未启用
 
 //用于获取是否开启了广域网
 static HB_S32 GetWanConnectionStatusCb( HB_VOID * para, HB_S32 n_column, HB_CHAR ** column_value, HB_CHAR ** column_name )
@@ -117,58 +23,24 @@ static HB_S32 GetWanConnectionStatusCb( HB_VOID * para, HB_S32 n_column, HB_CHAR
 
 //用于获取是否开启了广域网
 //返回0 关闭， 返回1 开启
-HB_S32 GetWanConnectionStatus()
+HB_S32 get_wan_connection_status(sqlite3 *db)
 {
-	sqlite3 *db;
 	HB_CHAR *errmsg = NULL;
 	HB_S32 ret = 0;
-	HB_CHAR sql[512] = {0};
-	HB_CHAR WanConnection[8] = {0};
+	HB_CHAR *pSql = "select wan_connection from system_web_data";
+	HB_CHAR cWanConnection[8] = {0};
 
-	ret = sqlite3_open(BOX_DATA_BASE_NAME, &db);
-	if (ret != SQLITE_OK) {
-		printf("***************%s:%d***************\nsqlite3_open error[%d]\n", __FILE__, __LINE__, ret);
-		return -1;
-	}
-
-	strcpy(sql, "select value from system_config_data where key='wan_connection'");
-	ret = sqlite3_exec(db, sql, GetWanConnectionStatusCb, (HB_VOID*)WanConnection, &errmsg);
+	ret = sqlite3_exec(db, pSql, GetWanConnectionStatusCb, (HB_VOID*)cWanConnection, &errmsg);
 	if (ret != SQLITE_OK) {
 		printf("***************%s:%d***************\nsqlite3_exec get wan_connection error[%d]:%s\n", __FILE__, __LINE__, ret, errmsg);
 		sqlite3_free(errmsg);
-		sqlite3_close(db);
-		return -2;
+		return HB_FAILURE;
 	}
-
-//	printf("strlen(WanConnection) : [%s],[%d]\n", WanConnection, strlen(WanConnection));
-
-	if ( strlen(WanConnection) <= 0 )
-	{
-		printf("Instert new value wan_connection\n");
-		memset(sql, 0, sizeof(sql));
-		snprintf(sql, sizeof(sql), "insert into system_config_data (key,value) values ('wan_connection','1')");
-		ret = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
-		if (ret != SQLITE_OK) {
-			printf("***************%s:%d***************\nsqlite3_exec set wan_connection error[%d]:%s\n", __FILE__, __LINE__, ret, errmsg);
-			sqlite3_free(errmsg);
-			sqlite3_close(db);
-			return -2;
-		}
-		strcpy(WanConnection, "1");
-	}
-
-
 	sqlite3_free(errmsg);
-	sqlite3_close(db);
 
-	if (atoi(WanConnection) == 0)
-	{
-		printf("wan closed!\n");
-		return 0;
-	}
+	flag_wan = atoi(cWanConnection);
 
-	printf("wan started!\n");
-	return 1;
+	return HB_SUCCESS;
 }
 
 HB_S32 get_ps_status(HB_CHAR *cmd)

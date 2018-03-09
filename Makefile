@@ -6,12 +6,12 @@ ifeq ($(TYPE), hisi_100)
 CC:=arm-hisiv100nptl-linux-gcc
 STRIP:=arm-hisiv100nptl-linux-strip
 CFLAGS = -Wall -O2
-LIBFLAGS = -Wl,-rpath /mnt/ydt_box/lib
+LIBFLAGS = -Wl,-rpath /ipnc/lib/
 INC_DIR := -I./inc
 LIB_DIR := -L./lib/hisi100
-LIBS := -lremote_debug -lmd5gen -lxml -lpthread -lsqlite3 -lrt
+LIBS := -levent -levent_pthreads -lmd5gen -lxml -lpthread -lsqlite3 -lrt -ldl
 
-DEST_DIR=/mnt/hgfs/share_dir/nfs_dir/boa_small_box
+DEST_DIR=/mnt/hgfs/share_dir/nfs_dir/boa_small_box/common
 APPBIN = box_iptable_100
 endif
 
@@ -22,7 +22,7 @@ CFLAGS = -Wall -O2
 LIBFLAGS = -Wl,-rpath /mnt/ydt_box/lib
 INC_DIR := -I./inc
 LIB_DIR := -L./lib/hisi200
-LIBS := -lremote_debug -lmd5gen -lsqlite3 -lxml -lpthread -lrt
+LIBS := -lremote_debug -lmd5gen -lsqlite3 -lxml -lpthread -lrt -ldl
 
 DEST_DIR=/mnt/hgfs/share_dir/nfs_dir/boa_big_box/bin
 APPBIN = box_iptable_200
