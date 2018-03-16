@@ -9,9 +9,9 @@ CFLAGS = -Wall -O2
 LIBFLAGS = -Wl,-rpath /ipnc/lib/
 INC_DIR := -I./inc
 LIB_DIR := -L./lib/hisi100
-LIBS := -levent -levent_pthreads -lmd5gen -lxml -lpthread -lsqlite3 -lrt -ldl
+LIBS := -levent -levent_pthreads -lmd5gen -lxml -lpthread -lsqlite3 -lm -lrt -ldl
 
-DEST_DIR=/mnt/hgfs/share_dir/nfs_dir/boa_small_box/common
+DEST_DIR=/mnt/hgfs/nfs_dir/share_dir/hb/A_Box_iptables/bin
 APPBIN = box_iptable_100
 endif
 
@@ -22,9 +22,9 @@ CFLAGS = -Wall -O2
 LIBFLAGS = -Wl,-rpath /mnt/ydt_box/lib
 INC_DIR := -I./inc
 LIB_DIR := -L./lib/hisi200
-LIBS := -lremote_debug -lmd5gen -lsqlite3 -lxml -lpthread -lrt -ldl
+LIBS := -lremote_debug -lmd5gen -lsqlite3 -lxml -lpthread -lm -lrt -ldl
 
-DEST_DIR=/mnt/hgfs/share_dir/nfs_dir/boa_big_box/bin
+DEST_DIR=/mnt/hgfs/nfs_dir/share_dir/hb/A_Box_iptables/bin
 APPBIN = box_iptable_200
 endif
 

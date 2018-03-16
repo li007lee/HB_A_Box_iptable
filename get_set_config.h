@@ -23,6 +23,10 @@ HB_S32 get_ps_status(HB_CHAR *cmd);
 HB_S32 test_gnLan_alive();
 //获取gnLan登录信息
 HB_S32 get_sys_gnLan(HB_VOID);
+//获取cpu使用率
+HB_S32 get_cpuoccupy(HB_FLOAT *pCpu);
+//获取内存使用率
+HB_FLOAT get_memoccupy();
 
 
 #endif /* GET_SET_CONFIG_H_ */

@@ -424,7 +424,7 @@ HB_S32 set_network(sqlite3 *db)
 		return HB_FAILURE;
 	}
 
-	printf("sql:[%s]\n", sql);
+//	printf("sql:[%s]\n", sql);
 	sqlite3_free(errmsg);
 	return HB_SUCCESS;
 }

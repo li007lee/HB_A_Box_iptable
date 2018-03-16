@@ -174,3 +174,84 @@ HB_S32 get_current_time(HB_CHAR *time_str)
 	sprintf(time_str, "%d-%d-%d %d:%d:%d",(1900+p->tm_year),( 1+p->tm_mon), p->tm_mday,p->tm_hour, p->tm_min, p->tm_sec);
 	return HB_SUCCESS;
 }
+
+
+//获取cpu使用率
+HB_S32 get_cpuoccupy(HB_FLOAT *pCpu)
+{
+    FILE *fp;
+    HB_CHAR buf[128];
+    HB_CHAR cpu[5];
+    HB_S32 user,nice,sys,idle,iowait,irq,softirq;
+    HB_S32 all1,all2,idle1,idle2;
+
+	fp = fopen("/proc/stat","r");
+	if(fp == NULL)
+	{
+		perror("fopen:");
+		return -1;
+	}
+
+	fgets(buf,sizeof(buf),fp);
+#if __DEBUG__
+	printf("buf=%s",buf);
+#endif
+	sscanf(buf,"%s%d%d%d%d%d%d%d",cpu,&user,&nice,&sys,&idle,&iowait,&irq,&softirq);
+	/*
+	 * #if __DEBUG__
+	 * printf("%s,%d,%d,%d,%d,%d,%d,%d\n",cpu,user,nice,sys,idle,iowait,irq,softirq);
+	 * #endif
+	 * */
+	all1 = user+nice+sys+idle+iowait+irq+softirq;
+	idle1 = idle;
+	rewind(fp);
+	/*第二次取数据*/
+	sleep(1);
+	memset(buf,0,sizeof(buf));
+	cpu[0] = '\0';
+	user=nice=sys=idle=iowait=irq=softirq=0;
+	fgets(buf,sizeof(buf),fp);
+	fclose(fp);
+#if __DEBUG__
+	printf("buf=%s",buf);
+#endif
+	sscanf(buf,"%s%d%d%d%d%d%d%d",cpu,&user,&nice,&sys,&idle,&iowait,&irq,&softirq);
+	/*
+	 * #if __DEBUG__
+	 * printf("%s,%d,%d,%d,%d,%d,%d,%d\n",cpu,user,nice,sys,idle,iowait,irq,softirq);
+	 * #endif
+	 * */
+	all2 = user+nice+sys+idle+iowait+irq+softirq;
+	idle2 = idle;
+
+	*pCpu = (HB_FLOAT)(all2-all1-(idle2-idle1))*100 / (all2-all1);
+//	printf("all=%d\n",all2-all1);
+//	printf("ilde=%d\n",all2-all1-(idle2-idle1));
+//	printf("cpu use = %d\n",*pCpu);
+//	printf("=======================\n");
+	return 0;
+}
+
+
+HB_FLOAT get_memoccupy()    // get RAM message
+{
+	FILE *fd;
+	HB_FLOAT fMemUsedRate;
+	HB_CHAR buff[256] = {0};
+	HB_CHAR cName1[32] = {0};
+	HB_CHAR cName2[32] = {0};
+	HB_U32 uiMemFree, uiMemTotal;
+
+
+	fd = fopen ("/proc/meminfo", "r");
+	fgets (buff, sizeof(buff), fd);
+	sscanf (buff, "%s %u %s\n", cName1, &uiMemTotal, cName2);
+	fgets (buff, sizeof(buff), fd);
+	sscanf (buff, "%s %u %s\n", cName1, &uiMemFree, cName2);
+	fclose(fd);//关闭文件fd
+
+	fMemUsedRate=(1-(double)uiMemFree/uiMemTotal)*100;
+
+
+	return fMemUsedRate;
+}

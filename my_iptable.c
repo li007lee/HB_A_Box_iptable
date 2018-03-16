@@ -12,6 +12,7 @@
 #include "ctrl_led.h"
 #include "iptable_server.h"
 #include "net_api.h"
+#include "box_info_upload.h"
 
 
 DEV_PLAT_MESSAGE_OBJ  gl_plant_msg;
@@ -194,9 +195,7 @@ static HB_S32 start_box_init()
 	sqlite3 *db;
 	HB_S32 ret = 0;
 
-	/******************************盒子获取流媒体信息******************************/
-    pthread_t threard_get_stream_server_info;
-	pthread_create(&threard_get_stream_server_info, NULL, IptableServer, NULL);
+	memset(&stUploadServerInfo, 0, sizeof(stUploadServerInfo));
 
 	ret = sqlite3_open(BOX_DATA_BASE_NAME, &db);
 	if (ret != SQLITE_OK) {
@@ -226,11 +225,20 @@ static HB_S32 start_box_init()
 	}
 	sqlite3_close(db);
 
-	//开机获取验证服务器地址
-	GetStreamInfo();
-	sleep(1);
-	//开机获取心跳服务器地址
-	GetHeartBeatServerInfo();
+	pthread_t threard_get_stream_server_info;
+	pthread_create(&threard_get_stream_server_info, NULL, IptableServer, NULL);
+
+	if (flag_wan)
+	{
+		//开机获取验证服务器地址
+		GetStreamInfo();
+		sleep(1);
+		//开机获取心跳服务器地址
+		GetHeartBeatServerInfo();
+		//开机获取上报服务器地址
+//		get_upload_server_info();
+	}
+
 
 
 #ifdef DOUBLE_NET_PORT
@@ -244,6 +252,9 @@ static HB_S32 start_box_init()
 	pthread_t thread_time_sync;
 	pthread_create(&thread_time_sync, NULL, TimeSync, NULL);
 #endif
+
+    pthread_t thTimer = -1;
+    pthread_create(&thTimer, NULL, thread_hb_box_info_upload, NULL);
 
 	sleep(1);
 	return HB_SUCCESS;

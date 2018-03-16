@@ -57,18 +57,18 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 //数据类型定义
 ///////////////////////////////////////////////////////////////////////////////////////////
-typedef unsigned char              HB_U8;
-typedef unsigned short            HB_U16;
-typedef unsigned int                 HB_U32;
-typedef unsigned long long    HB_U64;
-typedef signed char                   HB_S8;
-typedef short                                HB_S16;
-typedef int                                     HB_S32;
-typedef long long                        HB_S64;
-typedef char                                 HB_CHAR;
-typedef float                                 HB_FLOAT;
-typedef void                                  HB_VOID;
-typedef void *                               HB_HANDLE;
+typedef unsigned char	HB_U8;
+typedef unsigned short	HB_U16;
+typedef unsigned int	HB_U32;
+typedef unsigned long long	HB_U64;
+typedef signed char	HB_S8;
+typedef short	HB_S16;
+typedef int		HB_S32;
+typedef long long	HB_S64;
+typedef char	HB_CHAR;
+typedef float	HB_FLOAT;
+typedef void	HB_VOID;
+typedef void *	HB_HANDLE;
 typedef enum _tagHB_BOOL
 {
     HB_FALSE = 0,
@@ -110,8 +110,7 @@ typedef enum _tagHB_BOOL
 
 #ifdef SMALL_BOX
 
-#define DOUBLE_NET_PORT //定义双网口版本
-#define AGRICULTURE //定义农业版本
+//#define DOUBLE_NET_PORT //定义双网口版本
 
 #define LED_CTRL_SH_PATH	"led_ctrl.sh"
 #define KILL_LED_CTRL_SH_PATH	"killall -9 led_ctrl.sh"
@@ -193,14 +192,6 @@ typedef enum
     SERVER_IP_CUT //服务器类型截取
 }enum_server_type;
 
-
-
-typedef struct
-{
-	HB_CHAR addname[IP_ADDR_NAME];
-    HB_CHAR ip[IP_LEN_MAX];
-    HB_CHAR port[PORT_LEN];
-}stru_ip_addr;
 
 typedef struct
 {

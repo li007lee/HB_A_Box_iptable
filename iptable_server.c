@@ -10,6 +10,7 @@
 #include "get_set_config.h"
 #include "hf_plant_api.h"
 #include "net_api.h"
+#include "box_info_upload.h"
 
 #include "iptable_server.h"
 
