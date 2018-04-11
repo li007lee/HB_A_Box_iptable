@@ -9,7 +9,7 @@ CFLAGS = -Wall -O2
 LIBFLAGS = -Wl,-rpath /ipnc/lib/
 INC_DIR := -I./inc
 LIB_DIR := -L./lib/hisi100
-LIBS := -levent -levent_pthreads -lmd5gen -lxml -lpthread -lsqlite3 -lm -lrt -ldl
+LIBS := -levent -levent_pthreads -lxml -lpthread -lsqlite3 -lm -lrt -ldl
 
 DEST_DIR=/mnt/hgfs/nfs_dir/share_dir/hb/A_Box_iptables/bin
 APPBIN = box_iptable_100

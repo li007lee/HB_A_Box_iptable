@@ -92,10 +92,15 @@ typedef enum _tagHB_BOOL
 //生产服务器
 #define PT_ADDR_IP  "aegisci.ivview.com"
 #define PT_PORT     80
+#define HB_ALARM_SERVER_IP "alarm.hbydt.cn"
+#define HB_ALARM_SERVER_PORT 8088
 //测试服务器
 //#define PT_ADDR_IP  "testaegisci.hbydt.cn"
 //#define PT_ADDR_IP  "aegiscitest.hbydt.cn"
 //#define PT_PORT     80
+
+#define BOX_INFO_COLLECT_INTERVAL	60//盒子信息采集时间间隔 单位 秒
+#define DEFAULT_UPLOAD_INTERVAL	300	//盒子信息默认上报时间间隔	单位 秒
 
 #define MAX_ERR_CRITICAL	10
 #define MAX_ERR_TIMES		3
@@ -105,7 +110,8 @@ typedef enum _tagHB_BOOL
 #define IP_LEN_MAX	16
 #define PORT_LEN	8
 
-#define KEY	0xabcd0acd21ec //用于生成机器码时隐藏真是MAC地址（异或时使用）
+//#define KEY	0xabcd0acd21ec //用于生成机器码时隐藏真是MAC地址（异或时使用）
+#define KEY	0xabcd0a //用于生成机器码时隐藏真是MAC地址（异或时使用）
 
 
 #ifdef SMALL_BOX
@@ -116,6 +122,10 @@ typedef enum _tagHB_BOOL
 #define KILL_LED_CTRL_SH_PATH	"killall -9 led_ctrl.sh"
 #define BOX_VERSION_FILE "/ipnc/config/box_version"
 #define BOX_DATA_BASE_NAME    "/home/default/TM_X01_Data.db"
+#define KILL_HEARTBEAT_CLIENT "killall -9 easycamera"
+#define EASYCAMERA_XML "/home/default/easycamera.xml"
+//#define START_HEARTBEAT_CLIENT	"/ipnc/ydt/easycamera -c /home/default/easycamera.xml > /dev/null &"
+#define START_HEARTBEAT_CLIENT	"/tmp/nfs_dir/share_dir/hb/EasyDarwin-easycamera/easycamera -c /home/default/easycamera.xml > /dev/null &"
 #define SRV_IP_LIST	"/tmp/srv_ip_list.conf"
 #define TEAMLINK_CONF_FILENAME "/tmp/stun_client.conf"
 #define NTPDATE_FILEPATH	"/ipnc/ydt/ntpdate"
@@ -203,6 +213,8 @@ typedef struct
 
 typedef struct
 {
+	HB_CHAR cHeartbeatServerIp[16];
+	HB_S32	iHeartbeatPort;
 	HB_CHAR machine_code[32];
 }GLOBLE_MSG_STRUCT;
 

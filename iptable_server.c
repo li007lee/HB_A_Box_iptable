@@ -22,6 +22,7 @@
 
 SERVER_INFO_STRUCT	stream_msg = {0};
 SERVER_INFO_STRUCT	heartbeat_server_msg = {0};
+extern GLOBLE_MSG_STRUCT glMsg;
 struct event_base *pEventBase;
 extern DEV_PLAT_MESSAGE_OBJ  gl_plant_msg;
 extern HB_S32 flag_wan; //用于标记是否启用广域网 1启用 0未启用
@@ -124,6 +125,50 @@ HB_S32 GetStreamInfo()
 	return HB_SUCCESS;
 }
 
+
+
+HB_S32 write_xml(HB_CHAR *pHeartbeatIp, HB_S32 iHeartbeatPort, HB_CHAR *pBoxSn)
+{
+	FILE *fileFp;
+	HB_CHAR cFileContent[20480] = {0};
+	HB_CHAR cBuff[256] = {0};
+	fileFp = fopen(EASYCAMERA_XML, "r+");
+
+	while(fgets(cBuff, sizeof(cBuff), fileFp) != NULL)
+	{
+		if(strstr(cBuff, "easycms_ip") != NULL)
+		{
+			printf("find str:[%s]\n", cBuff);
+			memset(cBuff, 0, sizeof(cBuff));
+			snprintf(cBuff, sizeof(cBuff), "\t\t<PREF NAME=\"easycms_ip\" >%s</PREF>\n", pHeartbeatIp);
+		}
+		else if(strstr(cBuff, "easycms_port") != NULL)
+		{
+			printf("find str:[%s]\n", cBuff);
+			memset(cBuff, 0, sizeof(cBuff));
+			snprintf(cBuff, sizeof(cBuff), "\t\t<PREF NAME=\"easycms_port\" TYPE=\"UInt16\" >%d</PREF>\n", iHeartbeatPort);
+		}
+		else if(strstr(cBuff, "device_serial") != NULL)
+		{
+			printf("find str:[%s]\n", cBuff);
+			memset(cBuff, 0, sizeof(cBuff));
+			snprintf(cBuff, sizeof(cBuff), "\t\t<PREF NAME=\"device_serial\" >%s</PREF>\n", pBoxSn);
+		}
+
+		strcat(cFileContent, cBuff);
+		memset(cBuff, 0, sizeof(cBuff));
+	}
+
+	fseeko(fileFp, 0, SEEK_SET);
+	fprintf(fileFp, "%s", cFileContent);
+
+	fclose(fileFp);
+	fileFp = NULL;
+
+	return 0;
+}
+
+
 HB_S32 GetHeartBeatServerInfo()
 {
 	HB_S32 iSockFd = -1;
@@ -149,13 +194,18 @@ HB_S32 GetHeartBeatServerInfo()
 	TRACE_LOG("\n#######  The HB_BOX get heartbeat server ip successful !!!\n");
 	close_sockfd(&iSockFd);
 
+	if ((strcmp(glMsg.cHeartbeatServerIp, heartbeat_server_msg.ip[0])!=0) || (glMsg.iHeartbeatPort != atoi(heartbeat_server_msg.port[0])))
+	{
+		strncpy(glMsg.cHeartbeatServerIp, heartbeat_server_msg.ip[0], sizeof(glMsg.cHeartbeatServerIp));
+		glMsg.iHeartbeatPort = atoi(heartbeat_server_msg.port[0]);
+		system(KILL_HEARTBEAT_CLIENT);
+		//获取长连接服务器成功
+		write_xml(heartbeat_server_msg.ip[0], atoi(heartbeat_server_msg.port[0]), stBoxInfo.cBoxSn);
+		system(START_HEARTBEAT_CLIENT);
+	}
+
 	return HB_SUCCESS;
 }
-
-
-
-
-
 
 
 /*

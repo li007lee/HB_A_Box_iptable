@@ -9,7 +9,6 @@
 #define MD5GEN_H_
 
 
-int md5_packages_string(char *desc_str, char *src_str);
-
+int md5_packages_string(char *pDest, char *pSrc, int iSrcLen);
 
 #endif /* MD5GEN_H_ */

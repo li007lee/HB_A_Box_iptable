@@ -16,7 +16,7 @@
 
 
 DEV_PLAT_MESSAGE_OBJ  gl_plant_msg;
-GLOBLE_MSG_STRUCT gl_msg;
+GLOBLE_MSG_STRUCT glMsg;
 HB_S32 flag_wan = 0; //用于标记是否启用广域网 1启用 0未启用
 
 
@@ -74,7 +74,7 @@ HB_S32 check_write_token_file()
         return -1;
     }
 
-    md5_packages_string(md5_passwd, gl_plant_msg.stru_token.tokenpassword);
+    md5_packages_string(md5_passwd, gl_plant_msg.stru_token.tokenpassword, strlen(gl_plant_msg.stru_token.tokenpassword));
     //	printf("src:%s\tdesc:%s\n",plant_msg.stru_token.tokenpassword, md5_passwd);
     snprintf(tmp, sizeof(tmp), "UserKey1=<;;8;?>8>>8<=@\nUserKey2=1800\ngroupname=bjhbgkyybydt\nusername=%s\npasswd=\x01%s\n",
              gl_plant_msg.stru_token.tokenname, md5_passwd);
@@ -92,17 +92,18 @@ HB_S32 check_write_token_file()
 
 
 
-#if BIG_BOX_ELEVATOR
+
 void * TimeSync(void *arg)
 {
 	pthread_detach(pthread_self());
+#if 0
 	char *time_add[]={"asia.pool.ntp.org",
                       "ntp.api.bz",
                       "time.twc.weather.com",
                       "swisstime.ethz.ch",
                       "ntp3.fau.de",
                       "time-a.nist.gov",
-                      "time-b.nist.gov" ,
+                      "time-b.nist.gov",
                       "s1a.time.edu.cn",
 					  "s1a.time.edu.cn",
 					  "s2g.time.edu.cn",
@@ -133,21 +134,75 @@ void * TimeSync(void *arg)
 			now.tv_sec = time(NULL);
 			settimeofday(&now,NULL);
 			printf("get_time from \"%s\"***************************cur_time=%ld\n",time_add[i], time(NULL));
-			pthread_exit(NULL);
+			sleep(604800);//校时成功，每七天校一次时
+			continue;
+//			pthread_exit(NULL);
 			//return 0;
 		}
-		sleep(1);
+		sleep(5);
 		i++;
 		if (sizeof(time_add)/4 <= i)
 		{
 			i=0;
 		}
 	}
+#else
+	while(1)
+	{
+	//	http://alarm.hbydt.cn:8088/OPEN_UNION/4QAEAAEBAB4/AL000?app_id=OPEN_BASE_APP&sign=
+		//通过报警服务器进行校时
+		HB_S32 iSockFd = -1;
+		HB_CHAR *pPos = NULL;
+		HB_CHAR pUrlBuf[1024] = {0};
+		HB_CHAR cMsgBuff[1024] = {0};
+		//此处死循环，没有注册成功，不能取令牌
+		if (create_socket_connect_domain(&iSockFd, HB_ALARM_SERVER_IP, HB_ALARM_SERVER_PORT, 5)!=0)
+		{
+			//连接服务器失败，5s后重试
+			TRACE_ERR("\n########  The HB_BOX connect HbAlarmServer failed !!!\n");
+			close_sockfd(&iSockFd);
+			sleep(5);
+			continue;
+		}
+		strncpy(pUrlBuf, "OPEN_UNION/4QAEAAEBAB4/AL000/?appid=OPEN_BASE_APP&sign=", sizeof(pUrlBuf));
 
+		sprintf(cMsgBuff, "GET /%s HTTP/1.1\r\nHost:%s:%d\r\nConnection:keep-alive\r\nAccept:text/html,application/json;q=0.9,image/webp,*/*;q=0.8\r\nUpgrade-Insecure-Requests:1\r\nUser-Agent:Mozilla/5.0\r\nAccept-Encoding:gzip,deflate,sdch\r\nAccept-Language:zh-CN,zh;q=0.8\r\n\r\n",
+						pUrlBuf, HB_ALARM_SERVER_IP, HB_ALARM_SERVER_PORT);
+
+		if(send_data(&iSockFd, cMsgBuff, strlen(cMsgBuff), 10) < 0)
+		{
+			TRACE_ERR("\n#######send failed\n");
+			return NULL;
+		}
+		TRACE_DBG("\n============Send Send Send Send============ \n[%s]\n",cMsgBuff);
+		memset(cMsgBuff, 0, sizeof(cMsgBuff));
+		if(recv_data(&iSockFd ,cMsgBuff, sizeof(cMsgBuff), 10) < 0)
+		{
+			TRACE_ERR("\n#######recv failed\n");
+			return NULL;
+		}
+		TRACE_DBG("\n============Recv Recv Recv Recv============ \n[%s]\n",cMsgBuff);
+		close_sockfd(&iSockFd);
+
+		pPos = strstr(cMsgBuff, "stamp");
+		if(pPos != NULL)
+		{
+			HB_U64 lluCurTime = ((HB_U64)atoll(pPos+8))/1000;
+			printf("cur time : %llu\n", lluCurTime);
+			struct timeval tv_now;
+			tv_now.tv_sec = lluCurTime;
+			tv_now.tv_usec=0;
+			printf("settimeofday:%d\n", settimeofday(&tv_now,NULL)); //时间初始化
+			sleep(604800);//校时成功，每七天校一次时
+			continue;
+		}
+
+		sleep(5);
+	}
+#endif
 	pthread_exit(NULL);
 	return 0;
 }
-#endif
 
 static HB_S32 make_machine_code(sqlite3 *db, HB_S32 base)
 {
@@ -175,7 +230,7 @@ static HB_S32 make_machine_code(sqlite3 *db, HB_S32 base)
 	}
 	while(machine_code != 0);
 
-	snprintf(gl_msg.machine_code, sizeof(gl_msg.machine_code), "%s", p);
+	snprintf(glMsg.machine_code, sizeof(glMsg.machine_code), "%s", p);
 
 	memset(sql, 0, sizeof(sql));
 	snprintf(sql, sizeof(sql), "update system_web_data set machine_code='%s'", p);
@@ -194,8 +249,16 @@ static HB_S32 start_box_init()
 {
 	sqlite3 *db;
 	HB_S32 ret = 0;
+    FILE *pFileFp = NULL;
+	HB_CHAR *pPos = NULL;
 
+	memset(&stBoxInfo, 0, sizeof(stBoxInfo));
 	memset(&stUploadServerInfo, 0, sizeof(stUploadServerInfo));
+
+	//盒子校时操作
+	pthread_t thread_time_sync;
+	pthread_create(&thread_time_sync, NULL, TimeSync, NULL);
+
 
 	ret = sqlite3_open(BOX_DATA_BASE_NAME, &db);
 	if (ret != SQLITE_OK) {
@@ -225,6 +288,39 @@ static HB_S32 start_box_init()
 	}
 	sqlite3_close(db);
 
+    get_sys_sn(stBoxInfo.cBoxSn,sizeof(stBoxInfo.cBoxSn));
+    printf("cSn:[%s]\n", stBoxInfo.cBoxSn);
+
+
+	pFileFp = fopen(BOX_VERSION_FILE, "r");
+	if (NULL == pFileFp)
+	{
+		return HB_FAILURE;
+	}
+	else
+	{
+		fgets(stBoxInfo.cBoxType, 32, pFileFp);
+		if ((pPos=strchr(stBoxInfo.cBoxType,'\r')) != NULL)
+		{
+			*pPos = '\0';
+		}
+		else if ((pPos=strchr(stBoxInfo.cBoxType,'\n')) != NULL)
+		{
+			*pPos = '\0';
+		}
+		fgets(stBoxInfo.cVersion, 16, pFileFp);
+		if ((pPos=strchr(stBoxInfo.cVersion,'\r')) != NULL)
+		{
+			*pPos = '\0';
+		}
+		else if ((pPos=strchr(stBoxInfo.cVersion,'\n')) != NULL)
+		{
+			*pPos = '\0';
+		}
+		fclose(pFileFp);
+	}
+
+
 	pthread_t threard_get_stream_server_info;
 	pthread_create(&threard_get_stream_server_info, NULL, IptableServer, NULL);
 
@@ -233,7 +329,7 @@ static HB_S32 start_box_init()
 		//开机获取验证服务器地址
 		GetStreamInfo();
 		sleep(1);
-		//开机获取心跳服务器地址
+		//开机获长连接服务器地址
 		GetHeartBeatServerInfo();
 		//开机获取上报服务器地址
 //		get_upload_server_info();
@@ -245,12 +341,6 @@ static HB_S32 start_box_init()
 	//双网口小盒子点灯操作
 	pthread_t threard_get_net_status;
 	pthread_create(&threard_get_net_status, NULL, CtrlLed, NULL);
-#endif
-
-#ifdef BIG_BOX_ELEVATOR
-	//电梯盒子校时操作
-	pthread_t thread_time_sync;
-	pthread_create(&thread_time_sync, NULL, TimeSync, NULL);
 #endif
 
     pthread_t thTimer = -1;
@@ -269,6 +359,9 @@ HB_S32 main(HB_S32 argc, HB_CHAR* argv[])
 
     memset(&gl_plant_msg, 0, sizeof(DEV_PLAT_MESSAGE_OBJ));
     signal(SIGPIPE, SIG_IGN);
+
+    system("killall -9 gnLan");
+    system(KILL_HEARTBEAT_CLIENT);
 
     start_box_init();
 

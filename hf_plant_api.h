@@ -24,8 +24,7 @@ HB_S32 ODD_CHECK_PUT_MSG(HB_S32 *sockfd, enum_err_define err_index);//异常诊�
 //设备注册以及取令牌接口，成功返回HB_SUCCESS，失败返回HB_FAILURE
 HB_S32 hb_box_opt_cmd_exec(HB_S32 *pSockfd, OPT_TYPE enumOptCmd);
 HB_S32 pt_device_register(HB_S32 *sockfd);
-//计算MD5
-int Calculate_MD5(char *desc, const char *src);
+
 
 HB_S32 hb_box_get_streamserver_info(HB_S32 *sockfd);
 HB_S32 hb_box_get_heartbeatserver_info(HB_S32 *sockfd);
@@ -34,5 +33,8 @@ void *scanning_task(void *param);
 
 //开机配置辅助ip和路由
 HB_S32 set_network(sqlite3 *db);
+
+//计算MD5
+int calculate_md5(char *pDest, const char *cSrc);
 
 #endif /* HF_PLANT_API_H_ */

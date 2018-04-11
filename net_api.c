@@ -265,7 +265,7 @@ static HB_S32 connect_noblock(HB_S32 sockfd, struct sockaddr *addr, socklen_t sa
     tval.tv_usec = 0;
     if (0 == (n = select(sockfd + 1, &rset, &wset, NULL, nsec ? &tval : NULL)))	// timeout
     {
-    	printf("select error[%d]!\n", n);
+//    	printf("select error[%d]!\n", n);
         return -1;
     }
 
@@ -495,7 +495,7 @@ HB_S32 create_socket_connect_ipaddr(HB_S32 *psockfd, HB_CHAR *ipaddr, HB_S32 por
     ret = pt_connect(psockfd, ipaddr, port, timeout);
     if(ret < 0)
     {
-    	printf("connect to server failed!\n");
+    	printf("connect to [%s]:[%d] failed!\n", ipaddr, port);
         return HB_FAILURE;
     }
     else

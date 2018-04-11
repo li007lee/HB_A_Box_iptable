@@ -15,70 +15,36 @@
 #include "sqlite3.h"
 #include "net_api.h"
 
+#include "box_info_upload.h"
+
 extern DEV_PLAT_MESSAGE_OBJ gl_plant_msg;
 extern SERVER_INFO_STRUCT	stream_msg;
 extern SERVER_INFO_STRUCT	heartbeat_server_msg;
-extern GLOBLE_MSG_STRUCT gl_msg;
+extern GLOBLE_MSG_STRUCT glMsg;
 
 //封装字符串
 static HB_S32 make_url(HB_CHAR *pUrlBuf, HB_S32 iUrlBufSize, OPT_TYPE enumOptCmd)
 {
-    HB_CHAR cSn[32] = {0};
-    get_sys_sn(cSn,sizeof(cSn));
-    printf("cSn:[%s]\n", cSn);
-
     strcpy(gl_plant_msg.route_regist.ietype, "gn");
     if(strlen(gl_plant_msg.route_regist.sn_number) <= 0)
     {
-    	strcpy(gl_plant_msg.route_regist.sn_number, cSn);
+    	strcpy(gl_plant_msg.route_regist.sn_number, stBoxInfo.cBoxSn);
     }
 
     switch (enumOptCmd) {
     	case REGISTER ://注册
     	{
-    		FILE *pFileFp = NULL;
-    	    HB_CHAR *pPos = NULL;
-    	    HB_CHAR cBoxType[32] = {0};
-    	    HB_CHAR cVersion[16] = {0};
-
-    		pFileFp = fopen(BOX_VERSION_FILE, "r");
-			if (NULL == pFileFp)
-			{
-				return 0;
-			}
-			else
-			{
-				fgets(cBoxType, 32, pFileFp);
-				if ((pPos=strchr(cBoxType,'\r')) != NULL)
-				{
-					*pPos = '\0';
-				}
-				else if ((pPos=strchr(cBoxType,'\n')) != NULL)
-				{
-					*pPos = '\0';
-				}
-				fgets(cVersion, 16, pFileFp);
-				if ((pPos=strchr(cVersion,'\r')) != NULL)
-				{
-					*pPos = '\0';
-				}
-				else if ((pPos=strchr(cVersion,'\n')) != NULL)
-				{
-					*pPos = '\0';
-				}
-				fclose(pFileFp);
-			}
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act93802102/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s&vntype=%s&type=%s&softver=%s", time(NULL), gl_msg.machine_code, cSn, gl_plant_msg.route_regist.ietype, cBoxType, cVersion);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act93802102/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s&vntype=%s&type=%s&softver=%s", time(NULL), glMsg.machine_code, stBoxInfo.cBoxSn, gl_plant_msg.route_regist.ietype, stBoxInfo.cBoxType, stBoxInfo.cVersion);
     		break;
     	}
     	case GET_TOKEN : //令牌
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act387429/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), gl_msg.machine_code, cSn);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act387429/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), glMsg.machine_code, stBoxInfo.cBoxSn);
     		break;
     	case GETSTREAMINFO://获取流媒体服务器ip及端口
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act74339820/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s", time(NULL), gl_msg.machine_code);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act74339820/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s", time(NULL), glMsg.machine_code);
     		break;
     	case GET_HEARTBEAT_SERVER_INFO://获取流媒体服务器ip及端口
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act62749329/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), gl_msg.machine_code, cSn);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act62749329/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), glMsg.machine_code, stBoxInfo.cBoxSn);
     		break;
     	default :
     		break;
@@ -113,24 +79,30 @@ static HB_S32 fn_routeregist_fun(xmlDoc *doc, void *param, HB_CHAR *tags, HB_CHA
 
 static HB_S32 fn_GetStreamServerIp_fun(xmlDoc *doc, void *param, HB_CHAR *tags, HB_CHAR *values)
 {
-	struct hostent *hptr;
+//	struct hostent *hptr;
 	HB_S32 index = stream_msg.num;
 
 //    printf("%s:tags:%s\t\t\tvalues:%s\n",__FUNCTION__, tags, values);
 	if(strstr(tags, "HostIP") != NULL)
 	{
-		if((hptr = gethostbyname(values)) == NULL)
-		{
-			TRACE_ERR("gethostbyname error for host:%s\n", values);
-			return -1; /* 如果调用gethostbyname发生错误，返回 */
-		}
 		if (index >= IP_LIST_MAX)
 		{
 			return 0;
 		}
 		memset(stream_msg.ip[index], 0, sizeof(stream_msg.ip[index]));
-		snprintf(stream_msg.ip[index], sizeof(stream_msg.ip[index]), "%s", inet_ntoa(*((struct in_addr *)hptr->h_addr)));
-
+		if (from_domain_to_ip(stream_msg.ip[index], values, 2) < 0)
+		{
+			TRACE_ERR("gethostbyname error for host:%s\n", values);
+			return -1; /* 如果调用gethostbyname发生错误，返回 */
+		}
+//		if((hptr = gethostbyname(values)) == NULL)
+//		{
+//			TRACE_ERR("gethostbyname error for host:%s\n", values);
+//			return -1; /* 如果调用gethostbyname发生错误，返回 */
+//		}
+//		memset(stream_msg.ip[index], 0, sizeof(stream_msg.ip[index]));
+//		snprintf(stream_msg.ip[index], sizeof(stream_msg.ip[index]), "%s", inet_ntoa(*((struct in_addr *)hptr->h_addr)));
+//
 		printf("ipaddr:%s\n", stream_msg.ip[index]);
 
 		gl_plant_msg.return_stream = 2;
@@ -206,13 +178,13 @@ static HB_S32 fn_get_token_fun(xmlDoc *doc, void *param, HB_CHAR *tags, HB_CHAR 
 
 
 //计算MD5
-int Calculate_MD5(char *desc, const char *src)
+int calculate_md5(char *pDest, const char *cSrc)
 {
 	char buf[1024] = {0};
 
-	snprintf(buf, sizeof(buf), "%skJodi-OJNPodnoxTbgZKLr0VdR12xcEySrXDQ2vYZms53BAG", src);
+	snprintf(buf, sizeof(buf), "%skJodi-OJNPodnoxTbgZKLr0VdR12xcEySrXDQ2vYZms53BAG", cSrc);
 	//printf("mk_md5_old = [%s]\r\n", buf);
-	md5_packages_string(desc, buf);
+	md5_packages_string(pDest, buf, strlen(buf));
 	//printf("&&&&&&&&&&md5=[%s]", desc);
 
 	return 1;
@@ -223,18 +195,24 @@ int Calculate_MD5(char *desc, const char *src)
 
 static HB_S32 fn_GetHeartbeatServerIp_fun(xmlDoc *doc, void *param, HB_CHAR *tags, HB_CHAR *values)
 {
-	struct hostent *hptr;
+//	struct hostent *hptr;
 
 //    printf("%s:tags:%s\t\t\tvalues:%s\n",__FUNCTION__, tags, values);
 	if(strstr(tags, "hostIP") != NULL)
 	{
-		if((hptr = gethostbyname(values)) == NULL)
+		memset(heartbeat_server_msg.ip[0], 0, sizeof(heartbeat_server_msg.ip[0]));
+		if (from_domain_to_ip(heartbeat_server_msg.ip[0], values, 2) < 0)
 		{
 			TRACE_ERR("gethostbyname error for host:%s\n", values);
 			return -1; /* 如果调用gethostbyname发生错误，返回 */
 		}
-		memset(heartbeat_server_msg.ip[0], 0, sizeof(heartbeat_server_msg.ip[0]));
-		snprintf(heartbeat_server_msg.ip[0], sizeof(heartbeat_server_msg.ip[0]), "%s", inet_ntoa(*((struct in_addr *)hptr->h_addr)));
+//		if((hptr = gethostbyname(values)) == NULL)
+//		{
+//			TRACE_ERR("gethostbyname error for host:%s\n", values);
+//			return -1; /* 如果调用gethostbyname发生错误，返回 */
+//		}
+//		memset(heartbeat_server_msg.ip[0], 0, sizeof(heartbeat_server_msg.ip[0]));
+//		snprintf(heartbeat_server_msg.ip[0], sizeof(heartbeat_server_msg.ip[0]), "%s", inet_ntoa(*((struct in_addr *)hptr->h_addr)));
 
 		printf("heartbeat server addr:%s\n", heartbeat_server_msg.ip[0]);
 	}
@@ -262,7 +240,7 @@ HB_S32 hb_box_opt_cmd_exec(HB_S32 *pSockfd, OPT_TYPE enumOptCmd)
 	//拼接信令url
 	make_url(cTmpCmdUrl, sizeof(cTmpCmdUrl), enumOptCmd);
 	//计算签名
-	Calculate_MD5(cSign, cTmpCmdUrl);
+	calculate_md5(cSign, cTmpCmdUrl);
 	//将签名加入url
 	snprintf(cCmdUrl, sizeof(cCmdUrl), "%s&sign=%s", cTmpCmdUrl, cSign);
 
