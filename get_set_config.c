@@ -223,7 +223,6 @@ HB_S32 get_cpuoccupy(HB_FLOAT *pCpu)
 	 * */
 	all2 = user+nice+sys+idle+iowait+irq+softirq;
 	idle2 = idle;
-
 	*pCpu = (HB_FLOAT)(all2-all1-(idle2-idle1))*100 / (all2-all1);
 //	printf("all=%d\n",all2-all1);
 //	printf("ilde=%d\n",all2-all1-(idle2-idle1));

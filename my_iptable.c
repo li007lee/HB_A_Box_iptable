@@ -14,102 +14,98 @@
 #include "net_api.h"
 #include "box_info_upload.h"
 
-
-DEV_PLAT_MESSAGE_OBJ  gl_plant_msg;
+DEV_PLAT_MESSAGE_OBJ gl_plant_msg;
 GLOBLE_MSG_STRUCT glMsg;
 HB_S32 flag_wan = 0; //用于标记是否启用广域网 1启用 0未启用
-
 
 HB_S32 check_write_token_file()
 {
 	HB_S32 ret = 0;
-    FILE *fp = NULL;
-    HB_CHAR tmp[512];
-    HB_CHAR md5_passwd[64];
-    static HB_S32 write_flag = 0;
-    memset(md5_passwd, 0, sizeof(md5_passwd));
-    memset(tmp, 0, sizeof(tmp));
+	FILE *fp = NULL;
+	HB_CHAR tmp[512];
+	HB_CHAR md5_passwd[64];
+	static HB_S32 write_flag = 0;
+	memset(md5_passwd, 0, sizeof(md5_passwd));
+	memset(tmp, 0, sizeof(tmp));
 
-    if(write_flag == 1)
-    {
-        fp = fopen(TEAMLINK_CONF_FILENAME, "r");
-        while(NULL != fgets(tmp, sizeof(tmp), fp))
-        {
-            if(strstr(tmp, "username="))
-            {
-                if(strlen(tmp + strlen("username=")) <= 1)
-                {
-                    write_flag = 0;
-                    break;
-                }
-                TRACE_LOG("username = %s", tmp + strlen("username="));
-            }
-            else if(strstr(tmp, "passwd="))
-            {
-                if(strlen(tmp + strlen("groupname=")) <= 1)
-                {
-                    write_flag = 0;
-                    break;
-                }
-                TRACE_LOG("passwd = %s", tmp + strlen("passwd="));
-            }
-            else
-            {
-                continue;
-            }
-        }
-        if(fp != NULL)
-        {
-            fclose(fp);
-            fp = NULL;
-        }
-        if(write_flag == 1)
-        {
-            return 1;
-        }
-    }
-    if((fp = fopen(TEAMLINK_CONF_FILENAME, "w+b")) == NULL)
-    {
-        printf("write gnLan configure failed!\n");
-        return -1;
-    }
+	if (write_flag == 1)
+	{
+		fp = fopen(TEAMLINK_CONF_FILENAME, "r");
+		while (NULL != fgets(tmp, sizeof(tmp), fp))
+		{
+			if (strstr(tmp, "username="))
+			{
+				if (strlen(tmp + strlen("username=")) <= 1)
+				{
+					write_flag = 0;
+					break;
+				}
+				TRACE_LOG("username = %s", tmp + strlen("username="));
+			}
+			else if (strstr(tmp, "passwd="))
+			{
+				if (strlen(tmp + strlen("groupname=")) <= 1)
+				{
+					write_flag = 0;
+					break;
+				}
+				TRACE_LOG("passwd = %s", tmp + strlen("passwd="));
+			}
+			else
+			{
+				continue;
+			}
+		}
+		if (fp != NULL)
+		{
+			fclose(fp);
+			fp = NULL;
+		}
+		if (write_flag == 1)
+		{
+			return 1;
+		}
+	}
+	if ((fp = fopen(TEAMLINK_CONF_FILENAME, "w+b")) == NULL)
+	{
+		printf("write gnLan configure failed!\n");
+		return -1;
+	}
 
-    md5_packages_string(md5_passwd, gl_plant_msg.stru_token.tokenpassword, strlen(gl_plant_msg.stru_token.tokenpassword));
-    //	printf("src:%s\tdesc:%s\n",plant_msg.stru_token.tokenpassword, md5_passwd);
-    snprintf(tmp, sizeof(tmp), "UserKey1=<;;8;?>8>>8<=@\nUserKey2=1800\ngroupname=bjhbgkyybydt\nusername=%s\npasswd=\x01%s\n",
-             gl_plant_msg.stru_token.tokenname, md5_passwd);
-    ret = fwrite(tmp, strlen(tmp), 1, fp);
-    fflush(fp);
-    if(fp != NULL)
-    {
-        write_flag = 1;
-        fclose(fp);
-        fp = NULL;
-    }
+	md5_packages_string(md5_passwd, gl_plant_msg.stru_token.tokenpassword, strlen(gl_plant_msg.stru_token.tokenpassword));
+	//	printf("src:%s\tdesc:%s\n",plant_msg.stru_token.tokenpassword, md5_passwd);
+	snprintf(tmp, sizeof(tmp), "UserKey1=<;;8;?>8>>8<=@\nUserKey2=1800\ngroupname=bjhbgkyybydt\nusername=%s\npasswd=\x01%s\n",
+					gl_plant_msg.stru_token.tokenname, md5_passwd);
+	ret = fwrite(tmp, strlen(tmp), 1, fp);
+	fflush(fp);
+	if (fp != NULL)
+	{
+		write_flag = 1;
+		fclose(fp);
+		fp = NULL;
+	}
 
-    return 1;
+	return 1;
 }
-
-
-
 
 void * TimeSync(void *arg)
 {
 	pthread_detach(pthread_self());
 #if 0
-	char *time_add[]={"asia.pool.ntp.org",
-                      "ntp.api.bz",
-                      "time.twc.weather.com",
-                      "swisstime.ethz.ch",
-                      "ntp3.fau.de",
-                      "time-a.nist.gov",
-                      "time-b.nist.gov",
-                      "s1a.time.edu.cn",
-					  "s1a.time.edu.cn",
-					  "s2g.time.edu.cn",
-                      "time.nist.gov",
-                      "ntp.fudan.edu.cn",
-                      "time.windows.com"};
+	char *time_add[]=
+	{	"asia.pool.ntp.org",
+		"ntp.api.bz",
+		"time.twc.weather.com",
+		"swisstime.ethz.ch",
+		"ntp3.fau.de",
+		"time-a.nist.gov",
+		"time-b.nist.gov",
+		"s1a.time.edu.cn",
+		"s1a.time.edu.cn",
+		"s2g.time.edu.cn",
+		"time.nist.gov",
+		"ntp.fudan.edu.cn",
+		"time.windows.com"};
 	char uptime[32];
 	int i = 0;
 	struct timeval now;
@@ -121,11 +117,11 @@ void * TimeSync(void *arg)
 	{
 		memset(uptime, '\0', sizeof(uptime));
 #ifdef SMALL_BOX
-	    sprintf(uptime, "ntpdate %s",time_add[i]);
+		sprintf(uptime, "ntpdate %s",time_add[i]);
 #endif
 
 #ifdef BIG_BOX
-	    sprintf(uptime, BIN_PATH"ntpdate %s",time_add[i]);
+		sprintf(uptime, BIN_PATH"ntpdate %s",time_add[i]);
 #endif
 		system(uptime);
 
@@ -134,7 +130,7 @@ void * TimeSync(void *arg)
 			now.tv_sec = time(NULL);
 			settimeofday(&now,NULL);
 			printf("get_time from \"%s\"***************************cur_time=%ld\n",time_add[i], time(NULL));
-			sleep(604800);//校时成功，每七天校一次时
+			sleep(604800);  //校时成功，每七天校一次时
 			continue;
 //			pthread_exit(NULL);
 			//return 0;
@@ -147,16 +143,16 @@ void * TimeSync(void *arg)
 		}
 	}
 #else
-	while(1)
+	while (1)
 	{
-	//	http://alarm.hbydt.cn:8088/OPEN_UNION/4QAEAAEBAB4/AL000?app_id=OPEN_BASE_APP&sign=
+		//	http://alarm.hbydt.cn:8088/OPEN_UNION/4QAEAAEBAB4/AL000?app_id=OPEN_BASE_APP&sign=
 		//通过报警服务器进行校时
 		HB_S32 iSockFd = -1;
 		HB_CHAR *pPos = NULL;
-		HB_CHAR pUrlBuf[1024] = {0};
-		HB_CHAR cMsgBuff[1024] = {0};
+		HB_CHAR pUrlBuf[1024] = { 0 };
+		HB_CHAR cMsgBuff[1024] = { 0 };
 		//此处死循环，没有注册成功，不能取令牌
-		if (create_socket_connect_domain(&iSockFd, HB_ALARM_SERVER_IP, HB_ALARM_SERVER_PORT, 5)!=0)
+		if (create_socket_connect_domain(&iSockFd, HB_ALARM_SERVER_IP, HB_ALARM_SERVER_PORT, 5) != 0)
 		{
 			//连接服务器失败，5s后重试
 			TRACE_ERR("\n########  The HB_BOX connect HbAlarmServer failed !!!\n");
@@ -166,34 +162,35 @@ void * TimeSync(void *arg)
 		}
 		strncpy(pUrlBuf, "OPEN_UNION/4QAEAAEBAB4/AL000/?appid=OPEN_BASE_APP&sign=", sizeof(pUrlBuf));
 
-		sprintf(cMsgBuff, "GET /%s HTTP/1.1\r\nHost:%s:%d\r\nConnection:keep-alive\r\nAccept:text/html,application/json;q=0.9,image/webp,*/*;q=0.8\r\nUpgrade-Insecure-Requests:1\r\nUser-Agent:Mozilla/5.0\r\nAccept-Encoding:gzip,deflate,sdch\r\nAccept-Language:zh-CN,zh;q=0.8\r\n\r\n",
+		sprintf(cMsgBuff,
+						"GET /%s HTTP/1.1\r\nHost:%s:%d\r\nConnection:keep-alive\r\nAccept:text/html,application/json;q=0.9,image/webp,*/*;q=0.8\r\nUpgrade-Insecure-Requests:1\r\nUser-Agent:Mozilla/5.0\r\nAccept-Encoding:gzip,deflate,sdch\r\nAccept-Language:zh-CN,zh;q=0.8\r\n\r\n",
 						pUrlBuf, HB_ALARM_SERVER_IP, HB_ALARM_SERVER_PORT);
 
-		if(send_data(&iSockFd, cMsgBuff, strlen(cMsgBuff), 10) < 0)
+		if (send_data(&iSockFd, cMsgBuff, strlen(cMsgBuff), 10) < 0)
 		{
 			TRACE_ERR("\n#######send failed\n");
 			return NULL;
 		}
-		TRACE_DBG("\n============Send Send Send Send============ \n[%s]\n",cMsgBuff);
+		TRACE_DBG("\n============Send Send Send Send============ \n[%s]\n", cMsgBuff);
 		memset(cMsgBuff, 0, sizeof(cMsgBuff));
-		if(recv_data(&iSockFd ,cMsgBuff, sizeof(cMsgBuff), 10) < 0)
+		if (recv_data(&iSockFd, cMsgBuff, sizeof(cMsgBuff), 10) < 0)
 		{
 			TRACE_ERR("\n#######recv failed\n");
 			return NULL;
 		}
-		TRACE_DBG("\n============Recv Recv Recv Recv============ \n[%s]\n",cMsgBuff);
+		TRACE_DBG("\n============Recv Recv Recv Recv============ \n[%s]\n", cMsgBuff);
 		close_sockfd(&iSockFd);
 
 		pPos = strstr(cMsgBuff, "stamp");
-		if(pPos != NULL)
+		if (pPos != NULL)
 		{
-			HB_U64 lluCurTime = ((HB_U64)atoll(pPos+8))/1000;
+			HB_U64 lluCurTime = ((HB_U64) atoll(pPos + 8)) / 1000;
 			printf("cur time : %llu\n", lluCurTime);
 			struct timeval tv_now;
 			tv_now.tv_sec = lluCurTime;
-			tv_now.tv_usec=0;
-			printf("settimeofday:%d\n", settimeofday(&tv_now,NULL)); //时间初始化
-			sleep(604800);//校时成功，每七天校一次时
+			tv_now.tv_usec = 0;
+			printf("settimeofday:%d\n", settimeofday(&tv_now, NULL)); //时间初始化
+			sleep(604800); //校时成功，每七天校一次时
 			continue;
 		}
 
@@ -210,8 +207,8 @@ static HB_S32 make_machine_code(sqlite3 *db, HB_S32 base)
 	HB_CHAR *errmsg = NULL;
 	HB_S32 ret = 0;
 	HB_U64 machine_code;
-	HB_U8 retbuf[33] = {0};
-	HB_CHAR sql[512] = {0};
+	HB_U8 retbuf[33] = { 0 };
+	HB_CHAR sql[512] = { 0 };
 
 	machine_code = get_sys_mac();
 	printf("machine_code:%llu\n", machine_code);
@@ -221,21 +218,21 @@ static HB_S32 make_machine_code(sqlite3 *db, HB_S32 base)
 //	{
 //		return HB_FAILURE;
 //	}
-	p = &retbuf[sizeof(retbuf)-1];
+	p = &retbuf[sizeof(retbuf) - 1];
 	*p = '\0';
 	do
 	{
-		*--p = "0123456789abcdef"[machine_code%base];
+		*--p = "0123456789abcdef"[machine_code % base];
 		machine_code /= base;
-	}
-	while(machine_code != 0);
+	} while (machine_code != 0);
 
 	snprintf(glMsg.machine_code, sizeof(glMsg.machine_code), "%s", p);
 
 	memset(sql, 0, sizeof(sql));
 	snprintf(sql, sizeof(sql), "update system_web_data set machine_code='%s'", p);
 	ret = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
-	if (ret != SQLITE_OK) {
+	if (ret != SQLITE_OK)
+	{
 		printf("***************%s:%d***************\nsqlite3_exec [%s] error[%d]:%s\n", __FILE__, __LINE__, sql, ret, errmsg);
 		sqlite3_free(errmsg);
 		return HB_FAILURE;
@@ -249,7 +246,7 @@ static HB_S32 start_box_init()
 {
 	sqlite3 *db;
 	HB_S32 ret = 0;
-    FILE *pFileFp = NULL;
+	FILE *pFileFp = NULL;
 	HB_CHAR *pPos = NULL;
 
 	memset(&stBoxInfo, 0, sizeof(stBoxInfo));
@@ -259,9 +256,9 @@ static HB_S32 start_box_init()
 	pthread_t thread_time_sync;
 	pthread_create(&thread_time_sync, NULL, TimeSync, NULL);
 
-
 	ret = sqlite3_open(BOX_DATA_BASE_NAME, &db);
-	if (ret != SQLITE_OK) {
+	if (ret != SQLITE_OK)
+	{
 		printf("***************%s:%d***************\nsqlite3_open error[%d]\n", __FILE__, __LINE__, ret);
 		return HB_FAILURE;
 	}
@@ -272,15 +269,13 @@ static HB_S32 start_box_init()
 		return HB_FAILURE;
 	}
 
-
 	//设置在数据库中配置的辅助ip和路由
 	if (set_network(db) == HB_FAILURE)
 	{
 		sqlite3_close(db);
 		return HB_FAILURE;
 	}
-
-	 //获取盒子是否开起了广域网
+	//获取盒子是否开起了广域网
 	if (get_wan_connection_status(db) == HB_FAILURE)
 	{
 		sqlite3_close(db);
@@ -288,9 +283,8 @@ static HB_S32 start_box_init()
 	}
 	sqlite3_close(db);
 
-    get_sys_sn(stBoxInfo.cBoxSn,sizeof(stBoxInfo.cBoxSn));
-    printf("cSn:[%s]\n", stBoxInfo.cBoxSn);
-
+	get_sys_sn(stBoxInfo.cBoxSn, sizeof(stBoxInfo.cBoxSn));
+	printf("cSn:[%s]\n", stBoxInfo.cBoxSn);
 
 	pFileFp = fopen(BOX_VERSION_FILE, "r");
 	if (NULL == pFileFp)
@@ -300,27 +294,25 @@ static HB_S32 start_box_init()
 	else
 	{
 		fgets(stBoxInfo.cBoxType, 32, pFileFp);
-		if ((pPos=strchr(stBoxInfo.cBoxType,'\r')) != NULL)
+		if ((pPos = strchr(stBoxInfo.cBoxType, '\r')) != NULL)
 		{
 			*pPos = '\0';
 		}
-		else if ((pPos=strchr(stBoxInfo.cBoxType,'\n')) != NULL)
+		else if ((pPos = strchr(stBoxInfo.cBoxType, '\n')) != NULL)
 		{
 			*pPos = '\0';
 		}
 		fgets(stBoxInfo.cVersion, 16, pFileFp);
-		if ((pPos=strchr(stBoxInfo.cVersion,'\r')) != NULL)
+		if ((pPos = strchr(stBoxInfo.cVersion, '\r')) != NULL)
 		{
 			*pPos = '\0';
 		}
-		else if ((pPos=strchr(stBoxInfo.cVersion,'\n')) != NULL)
+		else if ((pPos = strchr(stBoxInfo.cVersion, '\n')) != NULL)
 		{
 			*pPos = '\0';
 		}
 		fclose(pFileFp);
 	}
-
-
 	pthread_t threard_get_stream_server_info;
 	pthread_create(&threard_get_stream_server_info, NULL, IptableServer, NULL);
 
@@ -335,64 +327,63 @@ static HB_S32 start_box_init()
 //		get_upload_server_info();
 	}
 
-
-
 #ifdef DOUBLE_NET_PORT
 	//双网口小盒子点灯操作
 	pthread_t threard_get_net_status;
 	pthread_create(&threard_get_net_status, NULL, CtrlLed, NULL);
 #endif
 
-    pthread_t thTimer = -1;
-    pthread_create(&thTimer, NULL, thread_hb_box_info_upload, NULL);
+	pthread_t thTimer = -1;
+	pthread_create(&thTimer, NULL, thread_hb_box_info_upload, NULL);
 
 	sleep(1);
 	return HB_SUCCESS;
 }
 
-
 HB_S32 main(HB_S32 argc, HB_CHAR* argv[])
 {
 	HB_S32 iSockFd = -1;
 	HB_S32 iGnlanExistFlag = 0; //用于标记天联是否已经启动
-	HB_CHAR cCmdBuf[64] = {0};
+	HB_CHAR cCmdBuf[64] = { 0 };
 
-    memset(&gl_plant_msg, 0, sizeof(DEV_PLAT_MESSAGE_OBJ));
-    signal(SIGPIPE, SIG_IGN);
+	memset(&gl_plant_msg, 0, sizeof(DEV_PLAT_MESSAGE_OBJ));
+	signal(SIGPIPE, SIG_IGN);
 
-    system("killall -9 gnLan");
-    system(KILL_HEARTBEAT_CLIENT);
+	system("killall -9 gnLan");
+	system(KILL_HEARTBEAT_CLIENT);
 
-    start_box_init();
+	start_box_init();
 
-GET_WAN_STATUS:
-	while(!flag_wan){sleep(10);}
+	GET_WAN_STATUS: while (!flag_wan)
+	{
+		sleep(10);
+	}
 
 	//盒子注册部分
-	while(1)
+	while (1)
 	{
-    	if (flag_wan == 0)
-    	{
-    		//广域网为开启或被关闭
-    		goto GET_WAN_STATUS;
-    	}
+		if (flag_wan == 0)
+		{
+			//广域网为开启或被关闭
+			goto GET_WAN_STATUS;
+		}
 		//此处死循环，没有注册成功，不能取令牌
-		if (create_socket_connect_domain(&iSockFd, PT_ADDR_IP, PT_PORT, 5)!=0)
+		if (create_socket_connect_domain(&iSockFd, PT_ADDR_IP, PT_PORT, 5) != 0)
 		{
 			//连接服务器失败，5s后重试
-        	TRACE_ERR("\n########  The HB_BOX connect HbServer failed !!!\n");
-        	close_sockfd(&iSockFd);
-        	sleep(5);
+			TRACE_ERR("\n########  The HB_BOX connect HbServer failed !!!\n");
+			close_sockfd(&iSockFd);
+			sleep(5);
 			continue;
 		}
-        else
-        {
-        	TRACE_LOG("\n#######  The route connect HbServer success !!!\n");
-        }
+		else
+		{
+			TRACE_LOG("\n#######  The route connect HbServer success !!!\n");
+		}
 
 		//设备注册接口
 		hb_box_opt_cmd_exec(&iSockFd, REGISTER);
-		if(gl_plant_msg.return_regist == 0)
+		if (gl_plant_msg.return_regist == 0)
 		{
 			TRACE_ERR("\n########  The HB_BOX register HbServer failed !!!\n");
 			close_sockfd(&iSockFd);
@@ -410,32 +401,28 @@ GET_WAN_STATUS:
 //	pthread_create(&scanning_pthread_id, NULL, scanning_task, NULL);
 
 	//设备注册成功,进行取令牌操作
-	while(1)
+	for (;;)
 	{
-    	if (flag_wan == 0)
-    	{
-    		//广域网为开启或被关闭
-    		goto GET_WAN_STATUS;
-    	}
+		if (flag_wan == 0)
+		{
+			//广域网为开启或被关闭
+			goto GET_WAN_STATUS;
+		}
 
-		if(get_sys_gnLan() == 0)
+		if (get_sys_gnLan() == 0)
 		{
 			//天联未登录或登陆失败
-			if (create_socket_connect_domain(&iSockFd, PT_ADDR_IP, PT_PORT, 5)!=0)
+			if (create_socket_connect_domain(&iSockFd, PT_ADDR_IP, PT_PORT, 5) != 0)
 			{
 				//连接服务器失败，5s后重试
-	        	TRACE_ERR("\n########  The HB_BOX connect HbServer failed !!!\n");
-	        	close_sockfd(&iSockFd);
-	        	sleep(5);
+				TRACE_ERR("\n########  The HB_BOX connect HbServer failed !!!\n");
+				close_sockfd(&iSockFd);
+				sleep(5);
 				continue;
 			}
-//	        else
-//	        {
-//	        	TRACE_LOG("\n#######  The HB_BOX connect HbServer success !!!\n");
-//	        }
 
-			hb_box_opt_cmd_exec(&iSockFd, GET_TOKEN);//设备令牌获取
-			if(gl_plant_msg.return_token != 1)
+			hb_box_opt_cmd_exec(&iSockFd, GET_TOKEN); //设备令牌获取
+			if (gl_plant_msg.return_token != 1)
 			{
 				TRACE_ERR("\n########  The HB_BOX get token failed !!!\n");
 				sleep(20);
@@ -445,17 +432,17 @@ GET_WAN_STATUS:
 			close_sockfd(&iSockFd);
 
 			//将token信息写入gnLan配置文件是否已经存在
-			if(check_write_token_file() > 0)
+			if (check_write_token_file() > 0)
 			{
 				FILE *pCmdFp = NULL;
 				memset(cCmdBuf, 0, sizeof(cCmdBuf));
 				iGnlanExistFlag = 0;
-				if((pCmdFp = popen("ps | grep gnLan | grep -v grep | wc -l","r")) != NULL)
+				if ((pCmdFp = popen("ps | grep gnLan | grep -v grep | wc -l", "r")) != NULL)
 				{
-					if( (fgets(cCmdBuf, sizeof(cCmdBuf), pCmdFp)) != NULL )
+					if ((fgets(cCmdBuf, sizeof(cCmdBuf), pCmdFp)) != NULL)
 					{
 						iGnlanExistFlag = atoi(cCmdBuf);
-						if(iGnlanExistFlag > 0)
+						if (iGnlanExistFlag > 0)
 						{
 							//gnLan已经存在则杀死
 							system("killall -9 gnLan");
@@ -496,6 +483,6 @@ GET_WAN_STATUS:
 		}
 	}
 
-    return HB_SUCCESS;
+	return HB_SUCCESS;
 }
 

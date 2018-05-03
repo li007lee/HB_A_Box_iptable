@@ -206,12 +206,10 @@ HB_VOID *thread_get_box_info(HB_VOID *arg)
 		{
 			stBoxInfo.iGnLanStatus = 1; //天联在线
 		}
-
 		//获取cpu使用率
 		get_cpuoccupy(&(stBoxInfo.fCpu));
 		//获取内存使用率
 		stBoxInfo.fMem = get_memoccupy();
-
 		pthread_mutex_lock(&lockMutexLock);
 		get_ydt_dev_list();//获取一点通设备列表
 		get_onvif_dev_list();//获取onvif设备列表
@@ -293,8 +291,8 @@ static HB_VOID connect_and_upload_box_info(struct bufferevent *pConnectUploadSer
 		make_sign(sign, cUploadInfo);
 		//拼接发送字符串
 		snprintf(cUrl, sizeof(cUrl), "/"UPLOAD_UNION_ID"/4QAEAAEBAB4/BoxStatusUp/?app_id="UPLOAD_APPID"&sign=%s", sign);
-		snprintf(cSendBuff, sizeof(cSendBuff), "POST %s HTTP/1.1\r\nHost:%s:8088\r\ncontent-type: text/plain; charset=utf-8\r\nContent-Length: %d\r\nConnection:keep-alive\r\n\r\n%s",
-				cUrl, PT_ADDR_IP, strlen(cUploadInfo), cUploadInfo);
+		snprintf(cSendBuff, sizeof(cSendBuff), "POST %s HTTP/1.1\r\nHost:%s:%d\r\ncontent-type: text/plain; charset=utf-8\r\nContent-Length: %d\r\nConnection:keep-alive\r\n\r\n%s",
+				cUrl, stUploadServerInfo.cUploadServerIp, stUploadServerInfo.iUploadServerPort, strlen(cUploadInfo), cUploadInfo);
 		printf("upload upload : [%s]\n", cSendBuff);
 
 
@@ -431,7 +429,7 @@ HB_VOID deal_cmd(struct bufferevent *pConnectUploadServerBev, HB_VOID *arg)
 			}
 
 			printf("stUploadServerInfo.iUploadInterval=%d\n", stUploadServerInfo.iUploadInterval);
-			printf("pTimerEventBasexxxxxxxxxxx=%p\n", pTimerEventBase);
+//			printf("pTimerEventBasexxxxxxxxxxx=%p\n", pTimerEventBase);
 			tv.tv_sec = stUploadServerInfo.iUploadInterval;
 			if (iFlag)
 			{
@@ -518,10 +516,8 @@ HB_VOID *thread_hb_box_info_upload(HB_VOID *arg)
 	pthread_detach(pthread_self());
 	stUploadServerInfo.iThreadStartFlag = 1;
 	struct event_base *pTimerEventBase;
-
 	list_init(&(stBoxInfo.listOnvifDev));
 	list_init(&(stBoxInfo.listYdtDev));
-
 	get_sys_sn(stBoxInfo.cBoxSn, sizeof(stBoxInfo.cBoxSn));
 
 	pthread_t threadGetBoxInfo = -1;
@@ -533,8 +529,8 @@ HB_VOID *thread_hb_box_info_upload(HB_VOID *arg)
 		perror("cmd_base event_base_new()");
 		stUploadServerInfo.iThreadStartFlag = 0;
 		pthread_mutex_lock(&lockMutexLock);
-//		pthread_cancel(threadGetBoxInfo);
-//		pthread_join(threadGetBoxInfo, NULL);
+		pthread_cancel(threadGetBoxInfo);
+		pthread_join(threadGetBoxInfo, NULL);
 		pthread_mutex_unlock(&lockMutexLock);
 		pthread_exit(NULL);
 	}
@@ -544,8 +540,8 @@ HB_VOID *thread_hb_box_info_upload(HB_VOID *arg)
 		TRACE_ERR("###### evthread_make_base_notifiable() err!");
 		stUploadServerInfo.iThreadStartFlag = 0;
 		pthread_mutex_lock(&lockMutexLock);
-//		pthread_cancel(threadGetBoxInfo);
-//		pthread_join(threadGetBoxInfo, NULL);
+		pthread_cancel(threadGetBoxInfo);
+		pthread_join(threadGetBoxInfo, NULL);
 		pthread_mutex_unlock(&lockMutexLock);
 		pthread_exit(NULL);
 	}

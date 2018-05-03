@@ -133,6 +133,11 @@ HB_S32 write_xml(HB_CHAR *pHeartbeatIp, HB_S32 iHeartbeatPort, HB_CHAR *pBoxSn)
 	HB_CHAR cFileContent[20480] = {0};
 	HB_CHAR cBuff[256] = {0};
 	fileFp = fopen(EASYCAMERA_XML, "r+");
+	if (fileFp == NULL)
+	{
+		TRACE_ERR("open %s failed!\n", fileFp);
+		return -1;
+	}
 
 	while(fgets(cBuff, sizeof(cBuff), fileFp) != NULL)
 	{
@@ -172,6 +177,7 @@ HB_S32 write_xml(HB_CHAR *pHeartbeatIp, HB_S32 iHeartbeatPort, HB_CHAR *pBoxSn)
 HB_S32 GetHeartBeatServerInfo()
 {
 	HB_S32 iSockFd = -1;
+	HB_S32 iRet = -1;
 
 	//盒子获取心跳服务器地址及端口
 	if (create_socket_connect_domain(&iSockFd, PT_ADDR_IP, PT_PORT, 5)!=0)
@@ -200,7 +206,10 @@ HB_S32 GetHeartBeatServerInfo()
 		glMsg.iHeartbeatPort = atoi(heartbeat_server_msg.port[0]);
 		system(KILL_HEARTBEAT_CLIENT);
 		//获取长连接服务器成功
-		write_xml(heartbeat_server_msg.ip[0], atoi(heartbeat_server_msg.port[0]), stBoxInfo.cBoxSn);
+		iRet = write_xml(heartbeat_server_msg.ip[0], atoi(heartbeat_server_msg.port[0]), stBoxInfo.cBoxSn);
+		if (iRet < 0)
+			return HB_FAILURE;
+
 		system(START_HEARTBEAT_CLIENT);
 	}
 
