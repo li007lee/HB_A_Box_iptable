@@ -135,7 +135,7 @@ HB_S32 write_xml(HB_CHAR *pHeartbeatIp, HB_S32 iHeartbeatPort, HB_CHAR *pBoxSn)
 	fileFp = fopen(EASYCAMERA_XML, "r+");
 	if (fileFp == NULL)
 	{
-		TRACE_ERR("open %s failed!\n", fileFp);
+		TRACE_ERR("open %s failed!\n", EASYCAMERA_XML);
 		return -1;
 	}
 

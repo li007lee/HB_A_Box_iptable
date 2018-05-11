@@ -20,7 +20,6 @@ HB_S32 flag_wan = 0; //用于标记是否启用广域网 1启用 0未启用
 
 HB_S32 check_write_token_file()
 {
-	HB_S32 ret = 0;
 	FILE *fp = NULL;
 	HB_CHAR tmp[512];
 	HB_CHAR md5_passwd[64];
@@ -76,7 +75,7 @@ HB_S32 check_write_token_file()
 	//	printf("src:%s\tdesc:%s\n",plant_msg.stru_token.tokenpassword, md5_passwd);
 	snprintf(tmp, sizeof(tmp), "UserKey1=<;;8;?>8>>8<=@\nUserKey2=1800\ngroupname=bjhbgkyybydt\nusername=%s\npasswd=\x01%s\n",
 					gl_plant_msg.stru_token.tokenname, md5_passwd);
-	ret = fwrite(tmp, strlen(tmp), 1, fp);
+	fwrite(tmp, strlen(tmp), 1, fp);
 	fflush(fp);
 	if (fp != NULL)
 	{

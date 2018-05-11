@@ -945,7 +945,7 @@ int list_hash(const list_t *restrict l, list_hash_t *restrict hash) {
     if (l->attrs.hasher == NULL) {
 #ifdef SIMCLIST_ALLOW_LOCATIONBASED_HASHES
         /* ENABLE WITH CARE !! */
-#warning "Memlocation-based hash is consistent only for testing modification in the same program run."
+//#warning "Memlocation-based hash is consistent only for testing modification in the same program run."
         int i;
 
         /* only use element references */

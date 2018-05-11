@@ -92,7 +92,6 @@ static HB_VOID *connect_ip_test(void *param)
 //获取一点通盒子列表回调函数
 static HB_S32 load_ydt_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** column_value, HB_CHAR ** column_name)
 {
-	HB_S32 iDevStatus = 0;
 	struct DEV_STATUS *pDevInfo = malloc(sizeof(struct DEV_STATUS));
 	memset(pDevInfo, 0, sizeof(struct DEV_STATUS));
 
@@ -101,7 +100,7 @@ static HB_S32 load_ydt_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** colu
 	strncpy(pDevInfo->cDevIp, column_value[1], strlen(column_value[1]));
 	pDevInfo->iPort1 = atoi(column_value[2]);
 	pDevInfo->iPort2 = atoi(column_value[3]);
-	iDevStatus = atoi(column_value[4]);
+	pDevInfo->iDevStatus = atoi(column_value[4]);
 
 	//插入链表
 	list_append(&(stBoxInfo.listYdtDev), (HB_VOID*)pDevInfo);
@@ -112,7 +111,6 @@ static HB_S32 load_ydt_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** colu
 static HB_VOID get_ydt_dev_list()
 {
 	HB_CHAR *sql = "select dev_id,dev_ip,dev_port,dev_port2,dev_state from dev_add_web_data";
-	HB_S32 ret = 0;
 
 	if (!list_empty(&(stBoxInfo.listYdtDev)))
 	{
@@ -130,9 +128,9 @@ static HB_VOID get_ydt_dev_list()
 		struct DEV_STATUS *pDevInfo = (struct DEV_STATUS*)list_iterator_next(&(stBoxInfo.listYdtDev));
 		pthread_attr_t attr;
 		pthread_t connect_test_pthread_id;
-		ret = pthread_attr_init(&attr);
-		ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-		ret = pthread_create(&connect_test_pthread_id, &attr, connect_ip_test, pDevInfo);
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		pthread_create(&connect_test_pthread_id, &attr, connect_ip_test, pDevInfo);
 		pthread_attr_destroy(&attr);
 	}
 	list_iterator_stop(&(stBoxInfo.listYdtDev));
@@ -141,7 +139,6 @@ static HB_VOID get_ydt_dev_list()
 //获取一点通盒子列表回调函数
 static HB_S32 load_onvif_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** column_value, HB_CHAR ** column_name)
 {
-	HB_S32 iDevStatus = 0;
 	struct DEV_STATUS *pDevInfo = malloc(sizeof(struct DEV_STATUS));
 	memset(pDevInfo, 0, sizeof(struct DEV_STATUS));
 
@@ -149,7 +146,7 @@ static HB_S32 load_onvif_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** co
 	strncpy(pDevInfo->cDevSn, column_value[0], strlen(column_value[0]));
 	strncpy(pDevInfo->cDevIp, column_value[1], strlen(column_value[1]));
 	pDevInfo->iPort1 = atoi(column_value[2]);
-	iDevStatus = atoi(column_value[3]);
+	pDevInfo->iDevStatus = atoi(column_value[3]);
 
 	//插入链表
 	list_append(&(stBoxInfo.listOnvifDev), (HB_VOID*)pDevInfo);
@@ -160,7 +157,6 @@ static HB_S32 load_onvif_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** co
 static HB_VOID get_onvif_dev_list()
 {
 	HB_CHAR *sql = "select dev_id,dev_ip,rtsp_port,dev_state from onvif_dev_data";
-	HB_S32 ret = 0;
 
 	if (!list_empty(&(stBoxInfo.listOnvifDev)))
 	{
@@ -178,9 +174,9 @@ static HB_VOID get_onvif_dev_list()
 		struct DEV_STATUS *pDevInfo = (struct DEV_STATUS*)list_iterator_next(&(stBoxInfo.listOnvifDev));
 		pthread_attr_t attr;
 		pthread_t connect_test_pthread_id;
-		ret = pthread_attr_init(&attr);
-		ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-		ret = pthread_create(&connect_test_pthread_id, &attr, connect_ip_test, pDevInfo);
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		pthread_create(&connect_test_pthread_id, &attr, connect_ip_test, pDevInfo);
 		pthread_attr_destroy(&attr);
 	}
 	list_iterator_stop(&(stBoxInfo.listOnvifDev));

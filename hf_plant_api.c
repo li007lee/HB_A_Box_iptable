@@ -58,13 +58,13 @@ static HB_S32 make_url(HB_CHAR *pUrlBuf, HB_S32 iUrlBufSize, OPT_TYPE enumOptCmd
 
 static HB_S32 fn_routeregist_fun(xmlDoc *doc, void *param, HB_CHAR *tags, HB_CHAR *values)
 {
-    static HB_S32 ifcheck_behind = 0;
+//    static HB_S32 ifcheck_behind = 0;
 //    printf("%s:tags:%s\t\t\t\tvalues:%s\n",__FUNCTION__, tags, values);
 	if(strstr(tags, "code") != NULL)
 	{
 		if(atoi(values) == 0)
 		{
-		    ifcheck_behind = 1;
+//		    ifcheck_behind = 1;
 			gl_plant_msg.return_regist = 1; //设备注册成功
 		}
 		else
