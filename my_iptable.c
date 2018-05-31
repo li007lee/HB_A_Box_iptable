@@ -315,6 +315,7 @@ static HB_S32 start_box_init()
 	pthread_t threard_get_stream_server_info;
 	pthread_create(&threard_get_stream_server_info, NULL, IptableServer, NULL);
 
+#if 0
 	if (flag_wan)
 	{
 		//开机获取验证服务器地址
@@ -325,6 +326,7 @@ static HB_S32 start_box_init()
 		//开机获取上报服务器地址
 //		get_upload_server_info();
 	}
+#endif
 
 #ifdef DOUBLE_NET_PORT
 	//双网口小盒子点灯操作
@@ -350,13 +352,19 @@ HB_S32 main(HB_S32 argc, HB_CHAR* argv[])
 
 	system("killall -9 gnLan");
 	system(KILL_HEARTBEAT_CLIENT);
+	system(KILL_LED_CTRL_SH);
 
 	start_box_init();
 
-	GET_WAN_STATUS: while (!flag_wan)
+GET_WAN_STATUS:
+
+	while (!flag_wan)
 	{
 		sleep(10);
 	}
+
+	pthread_t threard_get_server_info;
+	pthread_create(&threard_get_server_info, NULL, GetServer, NULL);
 
 	//盒子注册部分
 	while (1)

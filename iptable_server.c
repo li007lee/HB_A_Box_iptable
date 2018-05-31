@@ -200,18 +200,20 @@ HB_S32 GetHeartBeatServerInfo()
 	TRACE_LOG("\n#######  The HB_BOX get heartbeat server ip successful !!!\n");
 	close_sockfd(&iSockFd);
 
+	system(KILL_HEARTBEAT_CLIENT);
+
 	if ((strcmp(glMsg.cHeartbeatServerIp, heartbeat_server_msg.ip[0])!=0) || (glMsg.iHeartbeatPort != atoi(heartbeat_server_msg.port[0])))
 	{
 		strncpy(glMsg.cHeartbeatServerIp, heartbeat_server_msg.ip[0], sizeof(glMsg.cHeartbeatServerIp));
 		glMsg.iHeartbeatPort = atoi(heartbeat_server_msg.port[0]);
-		system(KILL_HEARTBEAT_CLIENT);
 		//获取长连接服务器成功
 		iRet = write_xml(heartbeat_server_msg.ip[0], atoi(heartbeat_server_msg.port[0]), stBoxInfo.cBoxSn);
 		if (iRet < 0)
 			return HB_FAILURE;
 
-		system(START_HEARTBEAT_CLIENT);
 	}
+
+	system(START_HEARTBEAT_CLIENT);
 
 	return HB_SUCCESS;
 }
@@ -389,5 +391,39 @@ HB_VOID *IptableServer(HB_VOID *args)
 	}
 #endif
 	TRACE_ERR("thread IptableServer exit !\n");
+	pthread_exit(NULL);
+}
+
+
+//启动一个服务，在每次登陆页面时会收到从loginout.cgi发来的连接，此时进行获取验证服务器ip的操作。
+HB_VOID *GetServer(HB_VOID *args)
+{
+	pthread_detach(pthread_self());
+	HB_S32 iRet = -1;
+
+	for (;;)
+	{
+		//开机获取验证服务器地址
+		iRet = GetStreamInfo();
+		if (HB_SUCCESS != iRet)
+		{
+			sleep(2);
+			continue;
+		}
+		break;
+	}
+
+	for (;;)
+	{
+		//开机获长连接服务器地址
+		iRet = GetHeartBeatServerInfo();
+		if (HB_SUCCESS != iRet)
+		{
+			sleep(2);
+			continue;
+		}
+		break;
+	}
+
 	pthread_exit(NULL);
 }

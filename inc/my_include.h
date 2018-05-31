@@ -116,12 +116,13 @@ typedef enum _tagHB_BOOL
 
 #ifdef SMALL_BOX
 
-//#define DOUBLE_NET_PORT //定义双网口版本
+#define DOUBLE_NET_PORT //定义双网口版本
 
 #define LED_CTRL_SH_PATH	"led_ctrl.sh"
 #define KILL_LED_CTRL_SH_PATH	"killall -9 led_ctrl.sh"
 #define BOX_VERSION_FILE "/ipnc/config/box_version"
 #define BOX_DATA_BASE_NAME    "/home/default/TM_X01_Data.db"
+#define KILL_LED_CTRL_SH	"killall -9 led_ctrl.sh"
 #define KILL_HEARTBEAT_CLIENT "killall -9 easycamera"
 #define EASYCAMERA_XML "/home/default/easycamera.xml"
 #define START_HEARTBEAT_CLIENT	"/ipnc/ydt/easycamera -c /home/default/easycamera.xml > /dev/null &"

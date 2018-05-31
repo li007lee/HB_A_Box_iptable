@@ -68,7 +68,7 @@ int md5_packages_string(char *pDest, char *pSrc, int iSrcLen)
 	MD5Update(&Md5Ctx, (unsigned char *)pSrc, iSrcLen); //md5加密
 	MD5Final(HA1, &Md5Ctx); //将加密后的密文放到HA1
 	CvtHex(HA1, pDest); //将HA1转换为字符串存储
-    return 1;
+   return 1;
 }
 
 
