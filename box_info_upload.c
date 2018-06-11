@@ -187,6 +187,7 @@ static HB_VOID get_onvif_dev_list()
 HB_VOID *thread_get_box_info(HB_VOID *arg)
 {
 //	pthread_detach(pthread_self());
+	sleep(5);//等待天联启动
 	while(stUploadServerInfo.iThreadStartFlag)
 	{
 		struct timeval tv;

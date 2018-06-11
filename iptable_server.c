@@ -404,7 +404,7 @@ HB_VOID *GetStreamServer(HB_VOID *args)
 		//开机获取验证服务器地址
 		if (HB_SUCCESS != GetStreamInfo())
 		{
-			sleep(2);
+			sleep(10);
 			continue;
 		}
 		break;
@@ -422,7 +422,7 @@ HB_VOID *GetHearBeatServer(HB_VOID *args)
 		//开机获长连接服务器地址
 		if (HB_SUCCESS != GetHeartBeatServerInfo())
 		{
-			sleep(2);
+			sleep(13);
 			continue;
 		}
 		break;
