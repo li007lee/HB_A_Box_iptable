@@ -395,29 +395,32 @@ HB_VOID *IptableServer(HB_VOID *args)
 }
 
 
-//启动一个服务，在每次登陆页面时会收到从loginout.cgi发来的连接，此时进行获取验证服务器ip的操作。
-HB_VOID *GetServer(HB_VOID *args)
+//开机获取验证服务器地址
+HB_VOID *GetStreamServer(HB_VOID *args)
 {
 	pthread_detach(pthread_self());
-	HB_S32 iRet = -1;
-
 	for (;;)
 	{
 		//开机获取验证服务器地址
-		iRet = GetStreamInfo();
-		if (HB_SUCCESS != iRet)
+		if (HB_SUCCESS != GetStreamInfo())
 		{
 			sleep(2);
 			continue;
 		}
 		break;
 	}
+	pthread_exit(NULL);
+}
 
+
+//获取长连接服务器地址
+HB_VOID *GetHearBeatServer(HB_VOID *args)
+{
+	pthread_detach(pthread_self());
 	for (;;)
 	{
 		//开机获长连接服务器地址
-		iRet = GetHeartBeatServerInfo();
-		if (HB_SUCCESS != iRet)
+		if (HB_SUCCESS != GetHeartBeatServerInfo())
 		{
 			sleep(2);
 			continue;
@@ -427,3 +430,4 @@ HB_VOID *GetServer(HB_VOID *args)
 
 	pthread_exit(NULL);
 }
+

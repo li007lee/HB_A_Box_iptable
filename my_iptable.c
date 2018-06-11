@@ -312,27 +312,21 @@ static HB_S32 start_box_init()
 		}
 		fclose(pFileFp);
 	}
-	pthread_t threard_get_stream_server_info;
-	pthread_create(&threard_get_stream_server_info, NULL, IptableServer, NULL);
-
-#if 0
-	if (flag_wan)
-	{
-		//开机获取验证服务器地址
-		GetStreamInfo();
-		sleep(1);
-		//开机获长连接服务器地址
-		GetHeartBeatServerInfo();
-		//开机获取上报服务器地址
-//		get_upload_server_info();
-	}
-#endif
+	pthread_t threard_iptable_server;
+	pthread_create(&threard_iptable_server, NULL, IptableServer, NULL);
 
 #ifdef DOUBLE_NET_PORT
 	//双网口小盒子点灯操作
 	pthread_t threard_get_net_status;
 	pthread_create(&threard_get_net_status, NULL, CtrlLed, NULL);
 #endif
+
+	pthread_t threard_get_stream_server_info;
+	pthread_create(&threard_get_stream_server_info, NULL, GetStreamServer, NULL);
+
+	pthread_t threard_get_heartbeat_server_info;
+	pthread_create(&threard_get_heartbeat_server_info, NULL, GetHearBeatServer, NULL);
+
 
 	pthread_t thTimer = -1;
 	pthread_create(&thTimer, NULL, thread_hb_box_info_upload, NULL);
@@ -363,11 +357,8 @@ GET_WAN_STATUS:
 		sleep(10);
 	}
 
-	pthread_t threard_get_server_info;
-	pthread_create(&threard_get_server_info, NULL, GetServer, NULL);
-
 	//盒子注册部分
-	while (1)
+	for(;;)
 	{
 		if (flag_wan == 0)
 		{

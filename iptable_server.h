@@ -17,6 +17,8 @@ HB_S32 GetStreamInfo();
 //获取心跳服务器ip和端口
 HB_S32 GetHeartBeatServerInfo();
 //获取验证服务器和心跳服务器ip和端口线程
-HB_VOID *GetServer(HB_VOID *args);
+HB_VOID *GetStreamServer(HB_VOID *args);
+//获取长连接服务器地址
+HB_VOID *GetHearBeatServer(HB_VOID *args);
 
 #endif /* IPTABLE_SERVER_H_ */
