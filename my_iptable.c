@@ -348,7 +348,10 @@ HB_S32 main(HB_S32 argc, HB_CHAR* argv[])
 	system(KILL_HEARTBEAT_CLIENT);
 	system(KILL_LED_CTRL_SH);
 
-	start_box_init();
+	if (HB_FAILURE == start_box_init())
+	{
+		return HB_FAILURE;
+	}
 
 GET_WAN_STATUS:
 
