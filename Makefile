@@ -52,4 +52,3 @@ all:
 	cp $(APPBIN) $(DEST_DIR)/$(APPBIN)
 clean:
 	rm -rf $(OBJS) $(APPBIN)
-	rm -rf $(DEST_DIR)/$(APPBIN)

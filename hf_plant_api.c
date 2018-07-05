@@ -12,15 +12,15 @@
 #include "md5gen.h"
 #include "hf_plant_api.h"
 #include "get_set_config.h"
-#include "sqlite3.h"
 #include "net_api.h"
 
 #include "box_info_upload.h"
+#include "my_sqlite.h"
+#include "common_args.h"
 
 extern DEV_PLAT_MESSAGE_OBJ gl_plant_msg;
 extern SERVER_INFO_STRUCT	stream_msg;
 extern SERVER_INFO_STRUCT	heartbeat_server_msg;
-extern GLOBLE_MSG_STRUCT glMsg;
 
 //封装字符串
 static HB_S32 make_url(HB_CHAR *pUrlBuf, HB_S32 iUrlBufSize, OPT_TYPE enumOptCmd)
@@ -28,23 +28,23 @@ static HB_S32 make_url(HB_CHAR *pUrlBuf, HB_S32 iUrlBufSize, OPT_TYPE enumOptCmd
     strcpy(gl_plant_msg.route_regist.ietype, "gn");
     if(strlen(gl_plant_msg.route_regist.sn_number) <= 0)
     {
-    	strcpy(gl_plant_msg.route_regist.sn_number, stBoxInfo.cBoxSn);
+    	strcpy(gl_plant_msg.route_regist.sn_number, glCommonArgs.cBoxSn);
     }
 
     switch (enumOptCmd) {
     	case REGISTER ://注册
     	{
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act93802102/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s&vntype=%s&type=%s&softver=%s", time(NULL), glMsg.machine_code, stBoxInfo.cBoxSn, gl_plant_msg.route_regist.ietype, stBoxInfo.cBoxType, stBoxInfo.cVersion);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act93802102/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s&vntype=%s&type=%s&softver=%s", time(NULL), glCommonArgs.cMachineCode, glCommonArgs.cBoxSn, gl_plant_msg.route_regist.ietype, glCommonArgs.cBoxType, glCommonArgs.cVersion);
     		break;
     	}
     	case GET_TOKEN : //令牌
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act387429/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), glMsg.machine_code, stBoxInfo.cBoxSn);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act387429/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), glCommonArgs.cMachineCode, glCommonArgs.cBoxSn);
     		break;
     	case GETSTREAMINFO://获取流媒体服务器ip及端口
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act74339820/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s", time(NULL), glMsg.machine_code);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act74339820/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s", time(NULL), glCommonArgs.cMachineCode);
     		break;
     	case GET_HEARTBEAT_SERVER_INFO://获取流媒体服务器ip及端口
-    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act62749329/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), glMsg.machine_code, stBoxInfo.cBoxSn);
+    		snprintf(pUrlBuf, iUrlBufSize, "http://"PT_ADDR_IP"/b659708496b3b74b9fb0138cd19904c7/010100FF/act62749329/?appid=lt0JIFQ85J3Vl5wCmHTQxA&timestamp=%ld&imei=%s&sn=%s", time(NULL), glCommonArgs.cMachineCode, glCommonArgs.cBoxSn);
     		break;
     	default :
     		break;
@@ -177,21 +177,6 @@ static HB_S32 fn_get_token_fun(xmlDoc *doc, void *param, HB_CHAR *tags, HB_CHAR 
 }
 
 
-//计算MD5
-int calculate_md5(char *pDest, const char *cSrc)
-{
-	char buf[1024] = {0};
-
-	snprintf(buf, sizeof(buf), "%skJodi-OJNPodnoxTbgZKLr0VdR12xcEySrXDQ2vYZms53BAG", cSrc);
-	//printf("mk_md5_old = [%s]\r\n", buf);
-	md5_packages_string(pDest, buf, strlen(buf));
-	//printf("&&&&&&&&&&md5=[%s]", desc);
-
-	return 1;
-}
-
-
-
 
 static HB_S32 fn_GetHeartbeatServerIp_fun(xmlDoc *doc, void *param, HB_CHAR *tags, HB_CHAR *values)
 {
@@ -233,6 +218,7 @@ HB_S32 hb_box_opt_cmd_exec(HB_S32 *pSockfd, OPT_TYPE enumOptCmd)
     HB_CHAR cMsgBuff[1024] = {0};//用于信令通信的缓冲区
     HB_CHAR cTmpCmdUrl[1024] = {0};
 	HB_CHAR cCmdUrl[1024] = {0}; //命令url
+	HB_CHAR cTmpBuf[1024] = {0};
 	HB_CHAR cSign[64] = {0}; //签名值
 	HB_CHAR *pPos = NULL;
 	xmlDoc *doc = NULL;
@@ -240,7 +226,8 @@ HB_S32 hb_box_opt_cmd_exec(HB_S32 *pSockfd, OPT_TYPE enumOptCmd)
 	//拼接信令url
 	make_url(cTmpCmdUrl, sizeof(cTmpCmdUrl), enumOptCmd);
 	//计算签名
-	calculate_md5(cSign, cTmpCmdUrl);
+	snprintf(cTmpBuf, sizeof(cTmpBuf), "%skJodi-OJNPodnoxTbgZKLr0VdR12xcEySrXDQ2vYZms53BAG", cTmpCmdUrl);
+	md5_packages_string(cSign, cTmpBuf, strlen(cTmpBuf));
 	//将签名加入url
 	snprintf(cCmdUrl, sizeof(cCmdUrl), "%s&sign=%s", cTmpCmdUrl, cSign);
 
@@ -288,70 +275,6 @@ HB_S32 hb_box_opt_cmd_exec(HB_S32 *pSockfd, OPT_TYPE enumOptCmd)
 }
 
 
-void *scanning_task(void *param)
-{
-	pthread_detach(pthread_self());
-	HB_S32  ret;
-	HB_CHAR tmp_buf[64] = {0};
-	FILE *fp;
-	//fp = popen("ifconfig eth0 | awk '/Link encap:/ {print $5}'", "r");
-	while (1)
-	{
-		ret = get_sys_gnLan();
-		if (ret) //gnlan成功登录后 修改mtu值
-		{
-			gl_plant_msg.gnlan_flag = 1;
-			memset(tmp_buf, 0, 64);
-			fp = popen("ifconfig gnLan | grep \"UP BROADCAST\" | awk '{print $4}'", "r");
-
-			fgets(tmp_buf, sizeof(tmp_buf), fp);
-			pclose(fp);
-			if (NULL == strstr(tmp_buf, "1000"))
-			{
-				system("ifconfig gnLan mtu 1000");
-			}
-		}
-		else
-		{
-			gl_plant_msg.gnlan_flag = 0;
-		}
-		sleep(120);
-
-#if 0
-		if (gl_plant_msg.gnlan_flag)//gnlan成功登录后检测要推送到设备
-		{
-			ret = check_normal_xml_file(XML_FILE_NAME);
-			if (1 == ret)//文件状态发生变化
-			{
-				ret = push_dev_to_server(XML_FILE_NAME);
-				if (ret != HB_SUCCESS)
-				{
-					sleep(120);
-				}
-			}
-		}
-#endif
-		//sleep(30);
-#if 0
-		int ttt=0;
-		while(1)
-		{
-			sleep(1);
-			TRACE_LOG("\n### sleep %d second\n", ttt);
-			ttt++;
-			if(ttt>10)
-			{
-				break;
-			}
-		}
-#endif
-	}
-	return NULL;
-}
-
-
-
-
 //重启网卡重设辅助ip
 static HB_S32 SetLanIp( HB_VOID * para, HB_S32 n_column, HB_CHAR ** column_value, HB_CHAR ** column_name )
 {
@@ -368,42 +291,33 @@ static HB_S32 SetLanIp( HB_VOID * para, HB_S32 n_column, HB_CHAR ** column_value
 //重启网卡重设静态路由
 static HB_S32 SetStaticRoute( HB_VOID * para, HB_S32 n_column, HB_CHAR ** column_value, HB_CHAR ** column_name )
 {
-	HB_CHAR cmd[256] = {0};
+	HB_CHAR cCmd[256] = {0};
 
-	snprintf(cmd, sizeof(cmd), "route add -net %s netmask %s gw %s dev %s", \
-			column_value[0], column_value[1], column_value[2], ETHX);
-	printf("[cmd:%s]\n", cmd);
-	system(cmd);
+	snprintf(cCmd, sizeof(cCmd), "route add -net %s netmask %s gw %s dev %s", column_value[0], column_value[1], column_value[2], ETHX);
+	printf("[do cmd:%s]\n", cCmd);
+	system(cCmd);
 
 	return 0;
 }
 
-HB_S32 set_network(sqlite3 *db)
+HB_S32 set_network(sqlite3 *pSqliteDbHandle)
 {
-	HB_CHAR *errmsg = NULL;
-	HB_S32 ret = 0;
-	HB_CHAR sql[512] = {0};
+	HB_CHAR cSqlCmd[512] = {0};
 
-	memset(sql, 0, sizeof(sql));
-	strncpy(sql, "select net_ethx,net_ipaddr,net_mask from lan_web_ip_data", sizeof(sql));
-	ret = sqlite3_exec(db, sql, SetLanIp, NULL, &errmsg);
-	if (ret != SQLITE_OK) {
-		printf("***************%s:%d***************\nsqlite3_exec [%s] error[%d]:%s\n", __FILE__, __LINE__, sql, ret, errmsg);
-		sqlite3_free(errmsg);
+	memset(cSqlCmd, 0, sizeof(cSqlCmd));
+	strncpy(cSqlCmd, "select net_ethx,net_ipaddr,net_mask from lan_web_ip_data", sizeof(cSqlCmd));
+	if (HB_FAILURE == my_sqlite_exec(pSqliteDbHandle, cSqlCmd, SetLanIp, NULL))
+	{
 		return HB_FAILURE;
 	}
 
-	memset(sql, 0, sizeof(sql));
-	strncpy(sql, "select segment,mask,gateway from static_route_data", sizeof(sql));
-	ret = sqlite3_exec(db, sql, SetStaticRoute, NULL, &errmsg);
-	if (ret != SQLITE_OK) {
-		printf("***************%s:%d***************\nsqlite3_exec [%s] error[%d]:%s\n", __FILE__, __LINE__, sql, ret, errmsg);
-		sqlite3_free(errmsg);
+	memset(cSqlCmd, 0, sizeof(cSqlCmd));
+	strncpy(cSqlCmd, "select segment,mask,gateway from static_route_data", sizeof(cSqlCmd));
+	if (HB_FAILURE == my_sqlite_exec(pSqliteDbHandle, cSqlCmd, SetStaticRoute, NULL))
+	{
 		return HB_FAILURE;
 	}
 
-//	printf("sql:[%s]\n", sql);
-	sqlite3_free(errmsg);
 	return HB_SUCCESS;
 }
 

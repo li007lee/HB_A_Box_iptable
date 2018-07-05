@@ -6,26 +6,25 @@
  */
 
 #include "my_include.h"
-#include "sqlite3.h"
-#include "get_set_config.h"
-#include "hf_plant_api.h"
-#include "net_api.h"
-#include "box_info_upload.h"
-
-#include "iptable_server.h"
-
 #include "event2/event.h"
 #include "event2/buffer.h"
 #include "event2/bufferevent.h"
 #include "event2/listener.h"
 #include "event2/thread.h"
 
+#include "get_set_config.h"
+#include "hf_plant_api.h"
+#include "net_api.h"
+#include "box_info_upload.h"
+#include "iptable_server.h"
+#include "common_args.h"
+#include "my_sqlite.h"
+
 SERVER_INFO_STRUCT	stream_msg = {0};
 SERVER_INFO_STRUCT	heartbeat_server_msg = {0};
-extern GLOBLE_MSG_STRUCT glMsg;
+extern GLOBLE_ARGS_STRUCT glCommonArgs;
 struct event_base *pEventBase;
 extern DEV_PLAT_MESSAGE_OBJ  gl_plant_msg;
-extern HB_S32 flag_wan; //用于标记是否启用广域网 1启用 0未启用
 
 
 /*
@@ -63,11 +62,9 @@ static HB_VOID deal_client_cmd_error_cb1(struct bufferevent *bev, short events, 
 
 HB_S32 GetStreamInfo()
 {
-	sqlite3 *db;
-	HB_CHAR *errmsg = NULL;
-	HB_CHAR sql[512] = {0};
-	HB_S32 ret, i;
+	HB_S32 i;
 	HB_S32 iSockFd = -1;
+	HB_CHAR cSqlCmd[512] = {0};
 
 	//盒子获取流媒体地址及端口
 	if (create_socket_connect_domain(&iSockFd, PT_ADDR_IP, PT_PORT, 5)!=0)
@@ -88,38 +85,23 @@ HB_S32 GetStreamInfo()
 	TRACE_LOG("\n#######  The HB_BOX get stream server ip successful !!!\n");
 	close_sockfd(&iSockFd);
 
-	//ip获取成功写入数据库
-	ret = sqlite3_open(BOX_DATA_BASE_NAME, &db);
-	if (ret != SQLITE_OK) {
-		printf("***************%s:%d***************\nsqlite3_open error[%d]\n", __FILE__, __LINE__, ret);
-		return HB_FAILURE;
-	}
-
-	memset(sql, 0, sizeof(sql));
-	snprintf(sql, sizeof(sql), "Delete from stream_server_list_data");
-	ret = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
-	if (ret != SQLITE_OK) {
-		printf("***************%s:%d***************\nsqlite3_exec error[%d]:%s\n", __FILE__, __LINE__, ret, errmsg);
-		sqlite3_free(errmsg);
-		sqlite3_close(db);
+	memset(cSqlCmd, 0, sizeof(cSqlCmd));
+	snprintf(cSqlCmd, sizeof(cSqlCmd), "Delete from stream_server_list_data");
+	if(HB_FAILURE == my_sqlite_exec(glCommonArgs.pSqliteDbHandle, cSqlCmd, NULL, NULL))
+	{
 		return HB_FAILURE;
 	}
 
 	for (i=0;i<stream_msg.num;i++) {
-		memset(sql, 0, sizeof(sql));
-		snprintf(sql, sizeof(sql), "insert into stream_server_list_data (stream_server_ip,stream_server_port) values ('%s','%s')", \
+		memset(cSqlCmd, 0, sizeof(cSqlCmd));
+		snprintf(cSqlCmd, sizeof(cSqlCmd), "insert into stream_server_list_data (stream_server_ip,stream_server_port) values ('%s','%s')", \
 						stream_msg.ip[i], stream_msg.port[i]);
-		ret = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
-		if (ret != SQLITE_OK) {
-			printf("***************%s:%d***************\nsqlite3_exec error[%d]:%s\n", __FILE__, __LINE__, ret, errmsg);
-			sqlite3_free(errmsg);
-			sqlite3_close(db);
+		if(HB_FAILURE == my_sqlite_exec(glCommonArgs.pSqliteDbHandle, cSqlCmd, NULL, NULL))
+		{
 			return HB_FAILURE;
 		}
 	}
 
-	sqlite3_free(errmsg);
-	sqlite3_close(db);
 	printf("########################get stream info succeed!\n");
 
 	return HB_SUCCESS;
@@ -202,12 +184,12 @@ HB_S32 GetHeartBeatServerInfo()
 
 	system(KILL_HEARTBEAT_CLIENT);
 
-	if ((strcmp(glMsg.cHeartbeatServerIp, heartbeat_server_msg.ip[0])!=0) || (glMsg.iHeartbeatPort != atoi(heartbeat_server_msg.port[0])))
+	if ((strcmp(glCommonArgs.cHeartbeatServerIp, heartbeat_server_msg.ip[0])!=0) || (glCommonArgs.iHeartbeatPort != atoi(heartbeat_server_msg.port[0])))
 	{
-		strncpy(glMsg.cHeartbeatServerIp, heartbeat_server_msg.ip[0], sizeof(glMsg.cHeartbeatServerIp));
-		glMsg.iHeartbeatPort = atoi(heartbeat_server_msg.port[0]);
+		strncpy(glCommonArgs.cHeartbeatServerIp, heartbeat_server_msg.ip[0], sizeof(glCommonArgs.cHeartbeatServerIp));
+		glCommonArgs.iHeartbeatPort = atoi(heartbeat_server_msg.port[0]);
 		//获取长连接服务器成功
-		iRet = write_xml(heartbeat_server_msg.ip[0], atoi(heartbeat_server_msg.port[0]), stBoxInfo.cBoxSn);
+		iRet = write_xml(heartbeat_server_msg.ip[0], atoi(heartbeat_server_msg.port[0]), glCommonArgs.cBoxSn);
 		if (iRet < 0)
 			return HB_FAILURE;
 
@@ -251,13 +233,13 @@ HB_VOID deal_client_cmd(struct bufferevent *pClientBev, void *arg)
 	if (strstr(arrc_RecvCmdBuf, "SetWan") != NULL)
 	{
 		HB_CHAR *pPos = strstr(arrc_RecvCmdBuf, "Value=");
-		flag_wan = atoi(pPos+6);
-		if (flag_wan == 0)
+		glCommonArgs.iWanOpenFlag = atoi(pPos+6);
+		if (glCommonArgs.iWanOpenFlag == 0)
 		{
 			//关闭了广域网
 			system("killall -9 gnLan");
 		}
-		printf("wan flag = %d\n", flag_wan);
+		printf("wan flag = %d\n", glCommonArgs.iWanOpenFlag);
 	}
 }
 
@@ -368,8 +350,8 @@ HB_VOID *IptableServer(HB_VOID *args)
 		if (strstr(cRecvBuf, "SetWan")!=NULL)
 		{
 			HB_CHAR *pPos = strstr(cRecvBuf, "Value=");
-			flag_wan = atoi(pPos+6);
-			if (flag_wan == 0)
+			glCommonArgs.iWanOpenFlag = atoi(pPos+6);
+			if (glCommonArgs.iWanOpenFlag == 0)
 			{
 				//关闭了广域网
 				system("killall -9 gnLan");
@@ -378,7 +360,7 @@ HB_VOID *IptableServer(HB_VOID *args)
 
 		if (strstr(cRecvBuf, "GetStreamInfo") != NULL)
 		{
-	    	if (flag_wan == 1)
+	    	if (glCommonArgs.iWanOpenFlag == 1)
 	    	{
 	    		//广域网开启
 	    		GetStreamInfo();

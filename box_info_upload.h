@@ -36,7 +36,7 @@ struct DEV_STATUS {
 	HB_CHAR cDevIp[16];
 	HB_S32	iPort1;
 	HB_S32	iPort2;
-	HB_CHAR cDevSn[64]; //盒子序列号
+	HB_CHAR cDevSn[64]; //设备序列号
 	HB_S32	iDevStatus;	//设备在线状态 （1：在线，0：不在线）
 };
 
@@ -45,9 +45,6 @@ struct BOX_INFO {
 	HB_FLOAT	fCpu;	//cpu使用率
 	HB_FLOAT	fMem;	//内存使用率
 	HB_U64 lluRecordTime;	//数据采集时间
-    HB_CHAR cVersion[16];
-    HB_CHAR cBoxType[32];
-	HB_CHAR cBoxSn[32]; //盒子序列号
 	list_t listOnvifDev;
 	list_t listYdtDev;
 };

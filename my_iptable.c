@@ -8,15 +8,15 @@
 #include "md5gen.h"
 #include "hf_plant_api.h"
 #include "get_set_config.h"
-#include "sqlite3.h"
 #include "ctrl_led.h"
 #include "iptable_server.h"
 #include "net_api.h"
 #include "box_info_upload.h"
+#include "common_args.h"
+#include "my_sqlite.h"
 
 DEV_PLAT_MESSAGE_OBJ gl_plant_msg;
-GLOBLE_MSG_STRUCT glMsg;
-HB_S32 flag_wan = 0; //用于标记是否启用广域网 1启用 0未启用
+GLOBLE_ARGS_STRUCT glCommonArgs; //全局通用结构体
 
 HB_S32 check_write_token_file()
 {
@@ -200,40 +200,30 @@ void * TimeSync(void *arg)
 	return 0;
 }
 
-static HB_S32 make_machine_code(sqlite3 *db, HB_S32 base)
+static HB_S32 make_machine_code(sqlite3 *pSqliteDbHandle)
 {
-	HB_CHAR *p;
-	HB_CHAR *errmsg = NULL;
-	HB_S32 ret = 0;
-	HB_U64 machine_code;
-	HB_U8 retbuf[33] = { 0 };
-	HB_CHAR sql[512] = { 0 };
+	HB_U8 *pPos;
+	HB_U64 u64MachineCode;
+	HB_U8 iRetBuf[32] = { 0 };
+	HB_CHAR cSqlCmd[512] = { 0 };
 
-	machine_code = get_sys_mac();
-	printf("machine_code:%llu\n", machine_code);
-	machine_code ^= KEY;
+	u64MachineCode = get_sys_mac();
+	u64MachineCode ^= KEY;
 
-//	if(base<2 || base>16)
-//	{
-//		return HB_FAILURE;
-//	}
-	p = &retbuf[sizeof(retbuf) - 1];
-	*p = '\0';
+	pPos = &(iRetBuf[32]);
 	do
 	{
-		*--p = "0123456789abcdef"[machine_code % base];
-		machine_code /= base;
-	} while (machine_code != 0);
+		*--pPos = "0123456789abcdef"[u64MachineCode % 16];
+		u64MachineCode /= 16;
+	} while (u64MachineCode != 0);
 
-	snprintf(glMsg.machine_code, sizeof(glMsg.machine_code), "%s", p);
+	snprintf(glCommonArgs.cMachineCode, sizeof(glCommonArgs.cMachineCode), "%s", pPos);
+	snprintf(cSqlCmd, sizeof(cSqlCmd), "update system_web_data set machine_code='%s'", pPos);
 
-	memset(sql, 0, sizeof(sql));
-	snprintf(sql, sizeof(sql), "update system_web_data set machine_code='%s'", p);
-	ret = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
-	if (ret != SQLITE_OK)
+	printf("machine_code:%s\n", pPos);
+
+	if (HB_FAILURE == my_sqlite_exec(pSqliteDbHandle, cSqlCmd, NULL, NULL))
 	{
-		printf("***************%s:%d***************\nsqlite3_exec [%s] error[%d]:%s\n", __FILE__, __LINE__, sql, ret, errmsg);
-		sqlite3_free(errmsg);
 		return HB_FAILURE;
 	}
 
@@ -243,8 +233,6 @@ static HB_S32 make_machine_code(sqlite3 *db, HB_S32 base)
 //设备开机初始化操作
 static HB_S32 start_box_init()
 {
-	sqlite3 *db;
-	HB_S32 ret = 0;
 	FILE *pFileFp = NULL;
 	HB_CHAR *pPos = NULL;
 
@@ -255,35 +243,32 @@ static HB_S32 start_box_init()
 	pthread_t thread_time_sync;
 	pthread_create(&thread_time_sync, NULL, TimeSync, NULL);
 
-	ret = sqlite3_open(BOX_DATA_BASE_NAME, &db);
-	if (ret != SQLITE_OK)
+	if (HB_FAILURE == my_sqlite_open(BOX_DATA_BASE_NAME, &glCommonArgs.pSqliteDbHandle))
 	{
-		printf("***************%s:%d***************\nsqlite3_open error[%d]\n", __FILE__, __LINE__, ret);
 		return HB_FAILURE;
 	}
 
-	if (make_machine_code(db, 16) == HB_FAILURE) //生成机器码
+	if (HB_FAILURE == make_machine_code(glCommonArgs.pSqliteDbHandle)) //生成机器码
 	{
-		sqlite3_close(db);
+		my_sqlite_close(&glCommonArgs.pSqliteDbHandle);
 		return HB_FAILURE;
 	}
 
 	//设置在数据库中配置的辅助ip和路由
-	if (set_network(db) == HB_FAILURE)
+	if (HB_FAILURE == set_network(glCommonArgs.pSqliteDbHandle))
 	{
-		sqlite3_close(db);
+		my_sqlite_close(&glCommonArgs.pSqliteDbHandle);
 		return HB_FAILURE;
 	}
 	//获取盒子是否开起了广域网
-	if (get_wan_connection_status(db) == HB_FAILURE)
+	if (HB_FAILURE == get_wan_connection_status(glCommonArgs.pSqliteDbHandle))
 	{
-		sqlite3_close(db);
+		my_sqlite_close(&glCommonArgs.pSqliteDbHandle);
 		return HB_FAILURE;
 	}
-	sqlite3_close(db);
 
-	get_sys_sn(stBoxInfo.cBoxSn, sizeof(stBoxInfo.cBoxSn));
-	printf("cSn:[%s]\n", stBoxInfo.cBoxSn);
+	get_sys_sn(glCommonArgs.cBoxSn, sizeof(glCommonArgs.cBoxSn));
+	printf("cSn:[%s]\n", glCommonArgs.cBoxSn);
 
 	pFileFp = fopen(BOX_VERSION_FILE, "r");
 	if (NULL == pFileFp)
@@ -292,21 +277,21 @@ static HB_S32 start_box_init()
 	}
 	else
 	{
-		fgets(stBoxInfo.cBoxType, 32, pFileFp);
-		if ((pPos = strchr(stBoxInfo.cBoxType, '\r')) != NULL)
+		fgets(glCommonArgs.cBoxType, 32, pFileFp);
+		if ((pPos = strchr(glCommonArgs.cBoxType, '\r')) != NULL)
 		{
 			*pPos = '\0';
 		}
-		else if ((pPos = strchr(stBoxInfo.cBoxType, '\n')) != NULL)
+		else if ((pPos = strchr(glCommonArgs.cBoxType, '\n')) != NULL)
 		{
 			*pPos = '\0';
 		}
-		fgets(stBoxInfo.cVersion, 16, pFileFp);
-		if ((pPos = strchr(stBoxInfo.cVersion, '\r')) != NULL)
+		fgets(glCommonArgs.cVersion, 16, pFileFp);
+		if ((pPos = strchr(glCommonArgs.cVersion, '\r')) != NULL)
 		{
 			*pPos = '\0';
 		}
-		else if ((pPos = strchr(stBoxInfo.cVersion, '\n')) != NULL)
+		else if ((pPos = strchr(glCommonArgs.cVersion, '\n')) != NULL)
 		{
 			*pPos = '\0';
 		}
@@ -355,7 +340,7 @@ HB_S32 main(HB_S32 argc, HB_CHAR* argv[])
 
 GET_WAN_STATUS:
 
-	while (!flag_wan)
+	while (!glCommonArgs.iWanOpenFlag)
 	{
 		sleep(10);
 	}
@@ -363,7 +348,7 @@ GET_WAN_STATUS:
 	//盒子注册部分
 	for(;;)
 	{
-		if (flag_wan == 0)
+		if (glCommonArgs.iWanOpenFlag == 0)
 		{
 			//广域网为开启或被关闭
 			goto GET_WAN_STATUS;
@@ -397,14 +382,10 @@ GET_WAN_STATUS:
 		break;
 	}
 
-	//任务扫描线程
-//	pthread_t scanning_pthread_id;
-//	pthread_create(&scanning_pthread_id, NULL, scanning_task, NULL);
-
 	//设备注册成功,进行取令牌操作
 	for (;;)
 	{
-		if (flag_wan == 0)
+		if (glCommonArgs.iWanOpenFlag == 0)
 		{
 			//广域网为开启或被关闭
 			goto GET_WAN_STATUS;

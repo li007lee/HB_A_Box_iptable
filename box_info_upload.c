@@ -6,6 +6,8 @@
  */
 
 #include "box_info_upload.h"
+#include "common_args.h"
+#include "my_sqlite.h"
 
 #define UPLOAD_APPID "rWy3-dSGvWhIhhsFSCzKbA"
 #define UPLOAD_UNION_ID "GpzXx5cW0AERDuUmseHmkQ"
@@ -15,7 +17,6 @@ struct UPLOAD_SERVER_INFO stUploadServerInfo;
 struct BOX_INFO stBoxInfo;
 struct event evTimer; //定时器事件
 pthread_mutex_t lockMutexLock = PTHREAD_MUTEX_INITIALIZER;
-
 
 /*
  *	Function: 处理与客户端信令交互时产生的异常和错误(第一次信令交互)
@@ -110,17 +111,15 @@ static HB_S32 load_ydt_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** colu
 
 static HB_VOID get_ydt_dev_list()
 {
-	HB_CHAR *sql = "select dev_id,dev_ip,dev_port,dev_port2,dev_state from dev_add_web_data";
+	HB_CHAR *pSqlCmd = "select dev_id,dev_ip,dev_port,dev_port2,dev_state from dev_add_web_data";
 
 	if (!list_empty(&(stBoxInfo.listYdtDev)))
 	{
 		//链表不为空，清空链表
 		list_clear(&(stBoxInfo.listYdtDev));
 	}
-	sqlite3 *db;
-	sqlite3_open(BOX_DATA_BASE_NAME, &db);
-	sqlite3_exec(db, sql, load_ydt_dev_info, NULL, NULL);
-	sqlite3_close(db);
+
+	my_sqlite_exec(glCommonArgs.pSqliteDbHandle, pSqlCmd, load_ydt_dev_info, NULL);
 
 	list_iterator_start(&(stBoxInfo.listYdtDev));
 	while (list_iterator_hasnext(&(stBoxInfo.listYdtDev)))
@@ -156,17 +155,15 @@ static HB_S32 load_onvif_dev_info(HB_VOID * para, HB_S32 n_column, HB_CHAR ** co
 
 static HB_VOID get_onvif_dev_list()
 {
-	HB_CHAR *sql = "select dev_id,dev_ip,rtsp_port,dev_state from onvif_dev_data";
+	HB_CHAR *pSqlCmd = "select dev_id,dev_ip,rtsp_port,dev_state from onvif_dev_data";
 
 	if (!list_empty(&(stBoxInfo.listOnvifDev)))
 	{
 		//链表不为空，清空链表
 		list_clear(&(stBoxInfo.listOnvifDev));
 	}
-	sqlite3 *db;
-	sqlite3_open(BOX_DATA_BASE_NAME, &db);
-	sqlite3_exec(db, sql, load_onvif_dev_info, NULL, NULL);
-	sqlite3_close(db);
+
+	my_sqlite_exec(glCommonArgs.pSqliteDbHandle, pSqlCmd, load_onvif_dev_info, NULL);
 
 	list_iterator_start(&(stBoxInfo.listOnvifDev));
 	while (list_iterator_hasnext(&(stBoxInfo.listOnvifDev)))
@@ -283,7 +280,7 @@ static HB_VOID connect_and_upload_box_info(struct bufferevent *pConnectUploadSer
 		HB_U64 lluRegTime = (HB_U64)tv.tv_sec*1000 + tv.tv_usec/1000;//取毫秒值
 		snprintf(cUploadInfo, sizeof(cUploadInfo), \
 			"{\"root\":{\"access_token\":\"%s\",\"stamp\":\"%llu\",\"datas\":{\"boxSn\":\"%s\",\"gnLan\":%d,\"cpu\":%.2f, \"mem\":%.2f, \"recordTime\":\"%llu\",\"ydtDevStatus\":[%s],\"onvifDevStatus\":[%s]}}}", \
-			stUploadServerInfo.cAccessToken, lluRegTime, stBoxInfo.cBoxSn, stBoxInfo.iGnLanStatus, stBoxInfo.fCpu, stBoxInfo.fMem, stBoxInfo.lluRecordTime, cYdtDevStatusList, cOnvifDevStatusList);
+			stUploadServerInfo.cAccessToken, lluRegTime, glCommonArgs.cBoxSn, stBoxInfo.iGnLanStatus, stBoxInfo.fCpu, stBoxInfo.fMem, stBoxInfo.lluRecordTime, cYdtDevStatusList, cOnvifDevStatusList);
 		//计算签名
 		make_sign(sign, cUploadInfo);
 		//拼接发送字符串
@@ -474,7 +471,7 @@ static HB_VOID connect_to_upload_server_event_cb(struct bufferevent *pConnectUpl
 		//连接服务器获取上报时间间隔
 		snprintf(cBody, sizeof(cBody), \
 			"{\"root\":{\"access_token\":\"\",\"stamp\":\"%llu\",\"datas\":{\"sn\":\"%s\",\"type\":\"%s\",\"version\":\"%s\",\"regTime\":\"%llu\"}}}", \
-			lluRegTime, stBoxInfo.cBoxSn, stBoxInfo.cBoxType, stBoxInfo.cVersion, lluRegTime);
+			lluRegTime, glCommonArgs.cBoxSn, glCommonArgs.cBoxType, glCommonArgs.cVersion, lluRegTime);
 		make_sign(cSign, cBody);
 	    //拼接发送字符串
 	    snprintf(cUrl, sizeof(cUrl), "%s&sign=%s", cUrlBase, cSign);
@@ -515,7 +512,7 @@ HB_VOID *thread_hb_box_info_upload(HB_VOID *arg)
 	struct event_base *pTimerEventBase;
 	list_init(&(stBoxInfo.listOnvifDev));
 	list_init(&(stBoxInfo.listYdtDev));
-	get_sys_sn(stBoxInfo.cBoxSn, sizeof(stBoxInfo.cBoxSn));
+	get_sys_sn(glCommonArgs.cBoxSn, sizeof(glCommonArgs.cBoxSn));
 
 	pthread_t threadGetBoxInfo = -1;
 	pthread_create(&threadGetBoxInfo, NULL, thread_get_box_info, NULL);

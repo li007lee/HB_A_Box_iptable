@@ -9,8 +9,7 @@
 #include "ctrl_led.h"
 #include "net_api.h"
 #include "get_set_config.h"
-
-extern HB_S32 flag_wan; //用于标记是否启用广域网 1启用 0未启用
+#include "common_args.h"
 
 #ifdef DOUBLE_NET_PORT
 HB_VOID * CtrlLed(void *arg)
@@ -21,7 +20,7 @@ HB_VOID * CtrlLed(void *arg)
 
 	while(1)
 	{
-		if (flag_wan == 0)
+		if (glCommonArgs.iWanOpenFlag == 0)
 		{
 			//如果广域网未开启，直接返回成功，无需检测网络
 			if (get_ps_status("ps | grep led_ctrl.sh | grep -v grep | wc -l") > 0)

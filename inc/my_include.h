@@ -8,50 +8,44 @@
 #ifndef MY_INCLUDE_H_
 #define MY_INCLUDE_H_
 
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
 #include <string.h>
 #include <pthread.h>
 #include <assert.h>
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
+#include <semaphore.h>
 #include <errno.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <resolv.h>
 #include <dirent.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <sys/wait.h>
 #include <stdarg.h>
-#include <string.h>
-#include <sys/types.h>
-#include <time.h>
-#include <sys/prctl.h>
-#include <sys/msg.h>
-#include <sys/time.h>
 #include <memory.h>
-#include <linux/rtc.h>
-#include <semaphore.h>
-#include <netinet/in.h>
-#include <net/if.h>
-#include <fcntl.h>
+#include <time.h>
 #include <netdb.h>
 #include <signal.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/prctl.h>
+#include <sys/msg.h>
+#include <sys/time.h>
+#include <sys/shm.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <sys/wait.h>
+#include <sys/socket.h>
+#include <linux/rtc.h>
+#include <linux/types.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <net/if_arp.h>
-#include <net/if.h>
-#include <sys/shm.h>
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +100,6 @@ typedef enum _tagHB_BOOL
 #define MAX_ERR_TIMES		3
 
 #define IP_LIST_MAX		5
-#define IP_ADDR_NAME	32
 #define IP_LEN_MAX	16
 #define PORT_LEN	8
 
@@ -176,48 +169,12 @@ typedef enum _tagHB_BOOL
 #endif
 
 
-typedef enum
-{
-	NETWORK_ANOMALY,			//网络异常
-	NETWORK_REGULAR,
-	NO_CONNECT_HF_SRV,			//连接汉邦服务器异常
-	DEVICE_MEMORY_FAILED,		//内存创建文件失败
-	DEVICE_REGIST_ODD,			//设备注册异常
-	DEVICE_REGIST_TOKEN,		//获取令牌异常
-	API_CALLBACK_ERR,			//api接口调用异常
-	YDT_SERVER_ANOMALY,			//一点通服务异常
-	YDT_CHECKIN_ERR,			//一点通密码校验错
-	YDT_SERVER_BREAK,			//一点通服务退出
-	DEVICE_LOOP_ERR,			//设备自环异常
-	DEVICE_MEMFILE_ERR,			//内存创建文件异常
-	ERR_DEFINE_END
-}enum_err_define;
-
-
-typedef enum
-{
-    AEGIS_SERVER, //维护服务器类型
-    REGIST_SERVER, //注册服务器类型
-    VIDEO_SWITCH_SERVER, //视频转发服务器
-    VIDEO_ABSTRACT_SERVER, //视频摘要服务器
-    SERVER_IP_CUT //服务器类型截取
-}enum_server_type;
-
-
 typedef struct
 {
 	HB_S32 num;
     HB_CHAR ip[IP_LIST_MAX][IP_LEN_MAX];
     HB_CHAR port[IP_LIST_MAX][PORT_LEN];
 }SERVER_INFO_STRUCT;
-
-
-typedef struct
-{
-	HB_CHAR cHeartbeatServerIp[16];
-	HB_S32	iHeartbeatPort;
-	HB_CHAR machine_code[32];
-}GLOBLE_MSG_STRUCT;
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -239,7 +196,6 @@ typedef struct _tagYDT_TOKEN//一点通令牌结构体
     HB_S32 groupid;
     HB_S32 userid;
 }YDT_TOKEN_OBJ, *YDT_TOKEN_HANDLE;
-
 
 
 typedef struct _tagDEV_PLAT_MESSAGE

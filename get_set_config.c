@@ -7,8 +7,9 @@
 #include "my_include.h"
 #include "net_api.h"
 #include "get_set_config.h"
+#include "my_sqlite.h"
+#include "common_args.h"
 
-extern HB_S32 flag_wan; //用于标记是否启用广域网 1启用 0未启用
 
 //用于获取是否开启了广域网
 static HB_S32 GetWanConnectionStatusCb( HB_VOID * para, HB_S32 n_column, HB_CHAR ** column_value, HB_CHAR ** column_name )
@@ -25,20 +26,15 @@ static HB_S32 GetWanConnectionStatusCb( HB_VOID * para, HB_S32 n_column, HB_CHAR
 //返回0 关闭， 返回1 开启
 HB_S32 get_wan_connection_status(sqlite3 *db)
 {
-	HB_CHAR *errmsg = NULL;
-	HB_S32 ret = 0;
 	HB_CHAR *pSql = "select wan_connection from system_web_data";
 	HB_CHAR cWanConnection[8] = {0};
 
-	ret = sqlite3_exec(db, pSql, GetWanConnectionStatusCb, (HB_VOID*)cWanConnection, &errmsg);
-	if (ret != SQLITE_OK) {
-		printf("***************%s:%d***************\nsqlite3_exec get wan_connection error[%d]:%s\n", __FILE__, __LINE__, ret, errmsg);
-		sqlite3_free(errmsg);
+	if (HB_FAILURE == my_sqlite_exec(db, pSql, GetWanConnectionStatusCb, (HB_VOID*)cWanConnection))
+	{
 		return HB_FAILURE;
 	}
-	sqlite3_free(errmsg);
 
-	flag_wan = atoi(cWanConnection);
+	glCommonArgs.iWanOpenFlag = atoi(cWanConnection);
 
 	return HB_SUCCESS;
 }
