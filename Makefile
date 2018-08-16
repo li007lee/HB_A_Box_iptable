@@ -13,7 +13,7 @@ LIB_DIR := -L./lib/hisi100
 LIBS := -levent -levent_pthreads -lxml -lpthread -lsqlite3 -lm -lrt -ldl
 
 DEST_DIR=/mnt/hgfs/nfs_dir/share_dir/hb/A_Box_iptables/bin
-APPBIN = box_iptable_100
+APPBIN = box_iptable_v100
 endif
 
 ifeq ($(TYPE), hisi_200)
@@ -26,7 +26,7 @@ LIB_DIR := -L./lib/hisi200
 LIBS := -lremote_debug -lmd5gen -lsqlite3 -lxml -lpthread -lm -lrt -ldl
 
 DEST_DIR=/mnt/hgfs/nfs_dir/share_dir/hb/A_Box_iptables/bin
-APPBIN = box_iptable_200
+APPBIN = box_iptable_v200
 endif
 
 ifeq ($(TYPE), hisi_300)
@@ -39,7 +39,7 @@ LIB_DIR := -L./lib/hisi300
 LIBS := -levent -levent_pthreads -lxml -lpthread -lsqlite3 -lm -lrt -ldl
 
 DEST_DIR=/mnt/hgfs/nfs_dir/share_dir/hb/A_Box_iptables/bin
-APPBIN = box_iptable_300
+APPBIN = box_iptable_v300
 endif
 
 

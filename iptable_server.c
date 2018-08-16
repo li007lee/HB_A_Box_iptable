@@ -228,7 +228,7 @@ HB_VOID deal_client_cmd(struct bufferevent *pClientBev, void *arg)
 		//收到推送视频流信令
 		TRACE_LOG("Recv Cmd : [%s]\n", arrc_RecvCmdBuf);
 		GetStreamInfo();
-		GetHeartBeatServerInfo();
+//		GetHeartBeatServerInfo();
 	}
 	if (strstr(arrc_RecvCmdBuf, "SetWan") != NULL)
 	{

@@ -103,8 +103,8 @@ typedef enum _tagHB_BOOL
 #define IP_LEN_MAX	16
 #define PORT_LEN	8
 
-//#define KEY	0xabcd0acd21ec //用于生成机器码时隐藏真是MAC地址（异或时使用）
-#define KEY	0xabcd0a //用于生成机器码时隐藏真是MAC地址（异或时使用）
+#define KEY	0xabcd0acd21ec //用于生成机器码时隐藏真是MAC地址（异或时使用）
+//#define KEY	0xabcd0a //用于生成机器码时隐藏真是MAC地址（异或时使用）
 
 
 #ifdef SMALL_BOX

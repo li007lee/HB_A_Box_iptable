@@ -213,14 +213,14 @@ static HB_S32 make_machine_code(sqlite3 *pSqliteDbHandle)
 	pPos = &(iRetBuf[32]);
 	do
 	{
-		*--pPos = "0123456789abcdef"[u64MachineCode % 16];
+		*(--pPos) = "0123456789abcdef"[u64MachineCode % 16];
 		u64MachineCode /= 16;
 	} while (u64MachineCode != 0);
 
 	snprintf(glCommonArgs.cMachineCode, sizeof(glCommonArgs.cMachineCode), "%s", pPos);
 	snprintf(cSqlCmd, sizeof(cSqlCmd), "update system_web_data set machine_code='%s'", pPos);
 
-	printf("machine_code:%s\n", pPos);
+	printf("machine_code:[%s]\n", pPos);
 
 	if (HB_FAILURE == my_sqlite_exec(pSqliteDbHandle, cSqlCmd, NULL, NULL))
 	{
@@ -238,6 +238,7 @@ static HB_S32 start_box_init()
 
 	memset(&stBoxInfo, 0, sizeof(stBoxInfo));
 	memset(&stUploadServerInfo, 0, sizeof(stUploadServerInfo));
+	memset(&glCommonArgs, 0, sizeof(glCommonArgs));
 
 	//盒子校时操作
 	pthread_t thread_time_sync;
@@ -309,8 +310,8 @@ static HB_S32 start_box_init()
 	pthread_t threard_get_stream_server_info;
 	pthread_create(&threard_get_stream_server_info, NULL, GetStreamServer, NULL);
 
-	pthread_t threard_get_heartbeat_server_info;
-	pthread_create(&threard_get_heartbeat_server_info, NULL, GetHearBeatServer, NULL);
+//	pthread_t threard_get_heartbeat_server_info;
+//	pthread_create(&threard_get_heartbeat_server_info, NULL, GetHearBeatServer, NULL);
 
 
 	pthread_t thTimer = -1;
@@ -330,7 +331,7 @@ HB_S32 main(HB_S32 argc, HB_CHAR* argv[])
 	signal(SIGPIPE, SIG_IGN);
 
 	system("killall -9 gnLan");
-	system(KILL_HEARTBEAT_CLIENT);
+//	system(KILL_HEARTBEAT_CLIENT);
 	system(KILL_LED_CTRL_SH);
 
 	if (HB_FAILURE == start_box_init())
