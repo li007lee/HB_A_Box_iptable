@@ -1,6 +1,6 @@
-#TYPE?=hisi_100
+TYPE?=hisi_100
 #TYPE?=hisi_200
-TYPE?=hisi_300
+#TYPE?=hisi_300
 
 
 ifeq ($(TYPE), hisi_100)

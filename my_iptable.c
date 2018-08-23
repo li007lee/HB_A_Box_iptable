@@ -210,7 +210,7 @@ static HB_S32 make_machine_code(sqlite3 *pSqliteDbHandle)
 	u64MachineCode = get_sys_mac();
 	u64MachineCode ^= KEY;
 
-	pPos = &(iRetBuf[32]);
+	pPos = &(iRetBuf[31]);
 	do
 	{
 		*(--pPos) = "0123456789abcdef"[u64MachineCode % 16];
